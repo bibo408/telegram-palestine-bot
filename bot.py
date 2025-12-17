@@ -112,7 +112,9 @@ def generate_hook(category):
     line2 = random.choice(data['line2'])
     line3 = random.choice(data['line3'])
 
-    return f"{emoji} {line1}\n{line2}\n{line3}"
+    hashtags = "#Hatshepsut #Palestine"
+
+    return f"{emoji} {line1}\n{line2}\n{line3}\n{hashtags}"
 
 # ================= START =================
 @bot.message_handler(commands=['start'])
@@ -134,8 +136,17 @@ def start(message):
 # ================= CALLBACK =================
 @bot.callback_query_handler(func=lambda call: True)
 def handle(call):
-    text = generate_hook(call.data)
-    bot.send_message(call.message.chat.id, text)
+    hook_text = generate_hook(call.data)
+
+    # Send main hook
+    bot.send_message(call.message.chat.id, hook_text)
+
+    # Send signature message automatically after
+    bot.send_message(
+        call.message.chat.id,
+        "مع تحيات بشمهندس بيبو\nوشريكه محمد مختار"
+    )
+
     bot.answer_callback_query(call.id)
 
 # ================= RUN =================
