@@ -11,7 +11,7 @@ bot = telebot.TeleBot(TOKEN)
 
 # ================= BLOCKED WORDS =================
 BLOCKED_WORDS = [
-    "conflict", "violence", "resistance", "occupation",
+    "conflict", "violence", "violent", "resistance", "occupation",
     "zion", "zionist", "jewish", "israel", "israeli",
     "catastrophe", "attack", "kill", "killing", "bomb",
     "fight", "fighting", "seizure", "displacement",
@@ -22,12 +22,24 @@ BLOCKED_WORDS = [
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸", "🕊️", "🌿", "📜", "🗺️", "⏳", "✨"]
 
-# ================= HASHTAGS =================
+# ================= HASHTAGS (MATCHING CATEGORIES) =================
 HASHTAGS = {
-    "palestine": ["#Palestine", "#FreePalestine", "#PalestinianIdentity"],
-    "gaza": ["#Gaza", "#HumanStories", "#VoicesFromGaza"],
-    "maps": ["#HistoricalMaps", "#PalestineHistory", "#Cartography"],
-    "nakba": ["#Nakba", "#HistoricalMemory", "#CollectiveMemory"]
+    "palestine": [
+        "#Palestine", "#FreePalestine", "#PalestinianIdentity",
+        "#PalestinianCulture", "#PalestinianHeritage"
+    ],
+    "gaza": [
+        "#Gaza", "#GazaStories", "#HumanStories",
+        "#LifeInGaza", "#GazaVoices"
+    ],
+    "maps": [
+        "#HistoricalMaps", "#PalestineMaps", "#Cartography",
+        "#HistoricalGeography", "#MapsTellStories"
+    ],
+    "nakba": [
+        "#Nakba", "#HistoricalMemory", "#CollectiveMemory",
+        "#RememberNakba", "#OralHistory"
+    ]
 }
 
 # ================= HOOKS =================
@@ -55,7 +67,7 @@ HOOKS = {
     "gaza": {
         "start": "Gaza",
         "neutral": [
-            "continues through resilience and patience",
+            "continues through patience and endurance",
             "exists beyond daily headlines"
         ],
         "emotional": [
@@ -124,12 +136,13 @@ def generate_hook(category, tone):
     data = HOOKS[category]
     emoji = random.choice(EMOJIS)
 
-    for _ in range(10):  # retries to avoid blocked words
+    for _ in range(10):
         line1 = f"{data['start']} {random.choice(data[tone])}"
         line2 = "A perspective shaped by memory and continuity"
         line3 = "A story that remains present through time"
 
         text = f"{emoji} {line1}\n{line2}\n{line3}"
+
         if not contains_blocked(text):
             tags = " ".join(random.sample(HASHTAGS[category], 2))
             return f"{text}\n{tags} #Hatshepsut"
