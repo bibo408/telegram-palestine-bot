@@ -105,50 +105,72 @@ HOOKS = {
 
 # ================= GENERATOR =================
 def generate_hook(category):
-    data = HOOKS.get(category)
+    if category not in HOOKS:
+        return None
+
+    data = HOOKS[category]
     emoji = random.choice(EMOJIS)
 
-    line1 = f"{data['start']} {random.choice(data['line1'])}"
-    line2 = random.choice(data['line2'])
-    line3 = random.choice(data['line3'])
+    text = (
+        f"{emoji} {data['start']} {random.choice(data['line1'])}\n"
+        f"{random.choice(data['line2'])}\n"
+        f"{random.choice(data['line3'])}\n"
+        "#Hatshepsut #Palestine"
+    )
+    return text
 
-    hashtags = "#Hatshepsut #Palestine"
-
-    return f"{emoji} {line1}\n{line2}\n{line3}\n{hashtags}"
-
-# ================= START =================
-@bot.message_handler(commands=['start'])
-def start(message):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(
+# ================= KEYBOARDS =================
+def main_menu():
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(
         InlineKeyboardButton("🇵🇸 Palestine", callback_data="palestine"),
         InlineKeyboardButton("🔥 Gaza", callback_data="gaza"),
         InlineKeyboardButton("🗺️ Historical Maps", callback_data="maps"),
         InlineKeyboardButton("🕊️ Nakba", callback_data="nakba")
     )
+    return kb
 
+def again_button(category):
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}")
+    )
+    return kb
+
+# ================= START =================
+@bot.message_handler(commands=['start'])
+def start(message):
     bot.send_message(
         message.chat.id,
         "Choose a category:",
-        reply_markup=keyboard
+        reply_markup=main_menu()
     )
 
 # ================= CALLBACK =================
 @bot.callback_query_handler(func=lambda call: True)
 def handle(call):
-    hook_text = generate_hook(call.data)
+    try:
+        if call.data.startswith("again|"):
+            category = call.data.split("|")[1]
+        else:
+            category = call.data
 
-    # Send main hook
-    bot.send_message(call.message.chat.id, hook_text)
+        hook_text = generate_hook(category)
+        if not hook_text:
+            bot.answer_callback_query(call.id)
+            return
 
-    # Send signature message automatically after
-    bot.send_message(
-        call.message.chat.id,
-        "مع تحيات بشمهندس بيبو\nوشريكه محمد مختار"
-    )
+        bot.send_message(
+            call.message.chat.id,
+            hook_text,
+            reply_markup=again_button(category)
+        )
 
-    bot.answer_callback_query(call.id)
+        bot.answer_callback_query(call.id)
+
+    except Exception as e:
+        print("ERROR:", e)
 
 # ================= RUN =================
-print("Bot is running...")
-bot.infinity_polling()
+print("Bot is running safely...")
+bot.infinity_polling(skip_pending=True)
