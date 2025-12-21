@@ -3,174 +3,152 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
+import os
 
-TOKEN = "PUT_YOUR_BOT_TOKEN_HERE"
-bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
+# ================= BOT =================
+TOKEN = os.getenv("BOT_TOKEN")
+bot = telebot.TeleBot(TOKEN)
 
-# ================= DATA =================
-DATA = {
+# ================= EMOJIS =================
+EMOJIS = ["🇵🇸", "🔥", "🕊️", "🗺️", "⏳", "📜", "💔", "🌿", "✊"]
+
+# ================= HOOK PARTS =================
+HOOKS = {
     "palestine": {
         "start": "Palestine",
-        "emoji": ["🇵🇸", "🌿", "🕊️", "✨"],
-        "lines1": [
-            "is not a trending topic, it is a living truth",
-            "is more than a place, it is an identity",
-            "exists beyond headlines and timelines",
-            "remains present in every generation"
+        "line1": [
+            "is not a headline, it is a reality the world keeps overlooking",
+            "is more than a place, it is a story still being written",
+            "exists beyond politics, borders, and narratives",
+            "remains a truth no distortion can erase"
         ],
-        "lines2": [
-            "carried through memory, land, and belonging",
-            "protected by history and human will",
-            "written into culture and consciousness",
-            "preserved through resilience and time"
+        "line2": [
+            "where identity survives every attempt of erasure",
+            "where history refuses to stay silent",
+            "where memory outlives occupation",
+            "where roots remain stronger than force"
         ],
-        "lines3": [
-            "and its story continues, uninterrupted",
-            "despite everything meant to erase it",
-            "as a constant, not a question",
-            "as a reality that endures"
+        "line3": [
+            "and the story continues despite everything",
+            "and its name still echoes across generations",
+            "and its existence remains undeniable",
+            "and its people never disappeared"
         ]
     },
 
     "gaza": {
         "start": "Gaza",
-        "emoji": ["🔥", "🕯️", "✊", "🩸"],
-        "lines1": [
-            "speaks through resilience, not destruction",
-            "is defined by strength, not statistics",
-            "stands through hardship and silence",
-            "continues despite relentless pressure"
+        "line1": [
+            "is not just a conflict zone, it is a human reality",
+            "is not statistics, it is lives interrupted",
+            "is not a breaking news alert, it is daily survival",
+            "is not silence, even when the world looks away"
         ],
-        "lines2": [
-            "where humanity persists under strain",
-            "where endurance becomes a language",
-            "where life insists on existing",
-            "where dignity refuses to collapse"
+        "line2": [
+            "where resilience is practiced, not preached",
+            "where endurance becomes a way of life",
+            "where strength is born from loss",
+            "where humanity persists under pressure"
         ],
-        "lines3": [
-            "and its people remain unbroken",
-            "without surrendering identity",
-            "without losing their voice",
-            "without fading into numbers"
+        "line3": [
+            "and dignity remains unbroken",
+            "and hope refuses to disappear",
+            "and life continues against all odds",
+            "and voices still rise from the ruins"
         ]
     },
 
     "maps": {
         "start": "This historical map of Palestine",
-        "emoji": ["🗺️", "📜", "🧭", "🕰️"],
-        "lines1": [
-            "documents a reality long before modern borders",
-            "preserves names that time could not erase",
-            "reveals a geography rooted in history",
-            "records identity beyond political shifts"
+        "line1": [
+            "reveals a geography that predates modern narratives",
+            "documents names and borders that once existed",
+            "stands as visual evidence of recorded history",
+            "preserves a land long before political manipulation"
         ],
-        "lines2": [
-            "where memory is drawn into every line",
-            "where heritage exists beyond rebranding",
-            "where place and people remain connected",
-            "where truth is quietly preserved"
+        "line2": [
+            "where cities, villages, and identities are clearly marked",
+            "where memory is drawn in ink, not erased by time",
+            "where history is measured by truth, not power",
+            "where the past refuses to be rewritten"
         ],
-        "lines3": [
-            "as evidence that history remembers",
-            "as proof that maps can carry truth",
-            "as a witness, not an opinion",
-            "as a reminder of what existed"
+        "line3": [
+            "and maps tell stories words cannot silence",
+            "and cartography exposes forgotten realities",
+            "and history remains visible for those who look",
+            "and truth survives within preserved lines"
         ]
     },
 
     "nakba": {
         "start": "The Nakba",
-        "emoji": ["🕊️", "🖤", "🕯️", "⏳"],
-        "lines1": [
-            "marked a profound human displacement",
-            "was a turning point in countless lives",
-            "left an enduring impact on identity",
-            "reshaped existence for generations"
+        "line1": [
+            "was not a single moment, but a lasting trauma",
+            "marked the beginning of widespread displacement",
+            "reshaped countless lives overnight",
+            "left scars that time could not heal"
         ],
-        "lines2": [
-            "without erasing memory or belonging",
-            "while leaving scars carried through time",
-            "yet failing to erase cultural roots",
-            "but never eliminating identity"
+        "line2": [
+            "where families were separated from their homes",
+            "where loss became a shared memory",
+            "where survival replaced normal life",
+            "where identity was tested but not erased"
         ],
-        "lines3": [
-            "and its story continues to be told",
-            "as a lesson recorded in history",
-            "as a memory preserved with dignity",
-            "as a reality remembered, not repeated"
+        "line3": [
+            "and its impact continues across generations",
+            "and its memory remains deeply rooted",
+            "and its consequences are still felt today",
+            "and its story demands to be remembered"
         ]
     }
 }
 
-# ================= FUNCTIONS =================
-def generate_text(category):
-    data = DATA[category]
-    emoji = random.choice(data["emoji"])
+# ================= GENERATOR =================
+def generate_hook(category):
+    data = HOOKS.get(category)
+    emoji = random.choice(EMOJIS)
 
-    text = (
-        f"{data['start']} {random.choice(data['lines1'])} {emoji}\n"
-        f"{random.choice(data['lines2'])}\n"
-        f"{random.choice(data['lines3'])}\n\n"
-        "#Hatshepsut #Palestine"
-    )
-    return text
+    line1 = f"{data['start']} {random.choice(data['line1'])}"
+    line2 = random.choice(data['line2'])
+    line3 = random.choice(data['line3'])
 
-def main_menu():
-    kb = InlineKeyboardMarkup(row_width=1)
-    kb.add(
+    hashtags = "#Hatshepsut #Palestine"
+
+    return f"{emoji} {line1}\n{line2}\n{line3}\n{hashtags}"
+
+# ================= START =================
+@bot.message_handler(commands=['start'])
+def start(message):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(
         InlineKeyboardButton("🇵🇸 Palestine", callback_data="palestine"),
         InlineKeyboardButton("🔥 Gaza", callback_data="gaza"),
         InlineKeyboardButton("🗺️ Historical Maps", callback_data="maps"),
         InlineKeyboardButton("🕊️ Nakba", callback_data="nakba")
     )
-    return kb
 
-def again_menu(category):
-    kb = InlineKeyboardMarkup(row_width=1)
-    kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again:{category}")
-    )
-    return kb
-
-# ================= HANDLERS =================
-@bot.message_handler(commands=["start"])
-def start(message):
     bot.send_message(
         message.chat.id,
-        "Choose a category to generate a powerful hook 🇵🇸",
-        reply_markup=main_menu()
+        "Choose a category:",
+        reply_markup=keyboard
     )
 
+# ================= CALLBACK =================
 @bot.callback_query_handler(func=lambda call: True)
-def handle_callback(call):
-    try:
-        if call.data in DATA:
-            category = call.data
+def handle(call):
+    hook_text = generate_hook(call.data)
 
-        elif call.data.startswith("again:"):
-            category = call.data.split(":")[1]
-            if category not in DATA:
-                return
-        else:
-            return
+    # Send main hook
+    bot.send_message(call.message.chat.id, hook_text)
 
-        text = generate_text(category)
+    # Send signature message automatically after
+    bot.send_message(
+        call.message.chat.id,
+        "مع تحيات بشمهندس بيبو\nوشريكه محمد مختار"
+    )
 
-        bot.send_message(
-            call.message.chat.id,
-            text,
-            reply_markup=again_menu(category)
-        )
-
-        bot.send_message(
-            call.message.chat.id,
-            "مع تحيات بشمهندس بيبو\nوشريكه محمد مختار"
-        )
-
-    except Exception as e:
-        # حماية أخيرة ضد أي كراش
-        print("ERROR:", e)
+    bot.answer_callback_query(call.id)
 
 # ================= RUN =================
-print("Bot is running safely...")
-bot.infinity_polling(skip_pending=True)
+print("Bot is running...")
+bot.infinity_polling()
