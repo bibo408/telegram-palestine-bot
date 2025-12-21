@@ -148,12 +148,16 @@ def tone_menu(lang, category):
         )
     return kb
 
-def again_menu(lang, category, tone):
-    kb = InlineKeyboardMarkup()
+def again_copy_menu(lang, category, tone, text):
+    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton(
             "🔄 Generate Again",
             callback_data=f"again|{lang}|{category}|{tone}"
+        ),
+        InlineKeyboardButton(
+            "📋 Copy",
+            switch_inline_query_current_chat=text
         )
     )
     return kb
@@ -190,8 +194,11 @@ def handle(call):
             _, lang, category, tone = data
             text = generate_hook(lang, category, tone)
             if text:
-                bot.send_message(call.message.chat.id, text,
-                                 reply_markup=again_menu(lang, category, tone))
+                bot.send_message(
+                    call.message.chat.id,
+                    text,
+                    reply_markup=again_copy_menu(lang, category, tone, text)
+                )
                 if CHANNEL_ID:
                     bot.send_message(CHANNEL_ID, text)
 
@@ -199,8 +206,11 @@ def handle(call):
             _, lang, category, tone = data
             text = generate_hook(lang, category, tone)
             if text:
-                bot.send_message(call.message.chat.id, text,
-                                 reply_markup=again_menu(lang, category, tone))
+                bot.send_message(
+                    call.message.chat.id,
+                    text,
+                    reply_markup=again_copy_menu(lang, category, tone, text)
+                )
                 if CHANNEL_ID:
                     bot.send_message(CHANNEL_ID, text)
 
@@ -210,8 +220,11 @@ def handle(call):
             tone = random.choice(TONES)
             text = generate_hook(lang, category, tone)
             if text:
-                bot.send_message(call.message.chat.id, text,
-                                 reply_markup=again_menu(lang, category, tone))
+                bot.send_message(
+                    call.message.chat.id,
+                    text,
+                    reply_markup=again_copy_menu(lang, category, tone, text)
+                )
                 if CHANNEL_ID:
                     bot.send_message(CHANNEL_ID, text)
 
