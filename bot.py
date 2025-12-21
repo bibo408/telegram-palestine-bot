@@ -7,7 +7,6 @@ import os
 
 # ================= BOT =================
 TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
 bot = telebot.TeleBot(TOKEN)
 
 # ================= BLOCKED WORDS =================
@@ -148,7 +147,7 @@ def tone_menu(lang, category):
         )
     return kb
 
-def again_copy_menu(lang, category, tone, text):
+def action_menu(lang, category, tone, text):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton(
@@ -158,6 +157,18 @@ def again_copy_menu(lang, category, tone, text):
         InlineKeyboardButton(
             "📋 Copy",
             switch_inline_query_current_chat=text
+        ),
+        InlineKeyboardButton(
+            "🌐 Translate",
+            callback_data=f"translate|{lang}|{category}|{tone}|{text}"
+        ),
+        InlineKeyboardButton(
+            "👍",
+            callback_data=f"rate|up|{text}"
+        ),
+        InlineKeyboardButton(
+            "👎",
+            callback_data=f"rate|down|{text}"
         )
     )
     return kb
@@ -197,10 +208,8 @@ def handle(call):
                 bot.send_message(
                     call.message.chat.id,
                     text,
-                    reply_markup=again_copy_menu(lang, category, tone, text)
+                    reply_markup=action_menu(lang, category, tone, text)
                 )
-                if CHANNEL_ID:
-                    bot.send_message(CHANNEL_ID, text)
 
         elif data[0] == "again":
             _, lang, category, tone = data
@@ -209,10 +218,8 @@ def handle(call):
                 bot.send_message(
                     call.message.chat.id,
                     text,
-                    reply_markup=again_copy_menu(lang, category, tone, text)
+                    reply_markup=action_menu(lang, category, tone, text)
                 )
-                if CHANNEL_ID:
-                    bot.send_message(CHANNEL_ID, text)
 
         elif data[0] == "surprise":
             lang = random.choice(["en","ar"])
@@ -223,10 +230,23 @@ def handle(call):
                 bot.send_message(
                     call.message.chat.id,
                     text,
-                    reply_markup=again_copy_menu(lang, category, tone, text)
+                    reply_markup=action_menu(lang, category, tone, text)
                 )
-                if CHANNEL_ID:
-                    bot.send_message(CHANNEL_ID, text)
+
+        elif data[0] == "translate":
+            # ترجمة بسيطة: تغيير اللغة (toggle)
+            _, lang, category, tone, text = data
+            new_lang = "ar" if lang == "en" else "en"
+            new_text = generate_hook(new_lang, category, tone)
+            bot.send_message(
+                call.message.chat.id,
+                new_text,
+                reply_markup=action_menu(new_lang, category, tone, new_text)
+            )
+
+        elif data[0] == "rate":
+            _, direction, text = data
+            bot.answer_callback_query(call.id, f"Thanks for rating {direction}!")
 
     except Exception as e:
         print("ERROR:", e)
