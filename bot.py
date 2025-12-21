@@ -7,169 +7,133 @@ import os
 
 # ================= BOT =================
 TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 bot = telebot.TeleBot(TOKEN)
 
 # ================= BLOCKED WORDS =================
 BLOCKED_WORDS = [
     "conflict", "violence", "violent", "resistance", "occupation",
     "zion", "zionist", "jewish", "israel", "israeli",
-    "catastrophe", "attack", "kill", "killing", "bomb",
-    "fight", "fighting", "seizure", "displacement",
-    "destruction", "destroy", "missile", "rocket",
-    "fraud", "scam", "steadfastness"
+    "attack", "kill", "bomb", "fight", "destroy",
+    "missile", "rocket", "fraud", "scam"
 ]
 
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸", "🕊️", "🌿", "📜", "🗺️", "⏳", "✨"]
 
-# ================= HASHTAGS (MATCHING CATEGORIES) =================
+# ================= HASHTAGS =================
 HASHTAGS = {
-    "palestine": [
-        "#Palestine", "#FreePalestine", "#PalestinianIdentity",
-        "#PalestinianCulture", "#PalestinianHeritage"
-    ],
-    "gaza": [
-        "#Gaza", "#GazaStories", "#HumanStories",
-        "#LifeInGaza", "#GazaVoices"
-    ],
-    "maps": [
-        "#HistoricalMaps", "#PalestineMaps", "#Cartography",
-        "#HistoricalGeography", "#MapsTellStories"
-    ],
-    "nakba": [
-        "#Nakba", "#HistoricalMemory", "#CollectiveMemory",
-        "#RememberNakba", "#OralHistory"
-    ]
+    "palestine": ["#Palestine", "#PalestinianIdentity", "#FreePalestine"],
+    "gaza": ["#Gaza", "#GazaStories", "#HumanStories"],
+    "maps": ["#HistoricalMaps", "#PalestineMaps", "#Cartography"],
+    "nakba": ["#Nakba", "#HistoricalMemory", "#CollectiveMemory"]
 }
 
 # ================= HOOKS =================
 HOOKS = {
-    "palestine": {
-        "start": "Palestine",
-        "neutral": [
-            "exists beyond headlines and narratives",
-            "remains a reality preserved through time"
-        ],
-        "emotional": [
-            "lives deeply in memory and belonging",
-            "breathes through identity and remembrance"
-        ],
-        "documentary": [
-            "is recorded through culture and history",
-            "is documented across generations"
-        ],
-        "viral": [
-            "is not a trend, it is a truth",
-            "is a story the world keeps missing"
-        ]
+    "en": {
+        "palestine": {
+            "start": "Palestine",
+            "neutral": [
+                "exists beyond headlines and narratives",
+                "remains a reality preserved through time"
+            ],
+            "emotional": [
+                "lives deeply in memory and belonging",
+                "breathes through identity and remembrance"
+            ],
+            "documentary": [
+                "is recorded through culture and history",
+                "is documented across generations"
+            ],
+            "viral": [
+                "is not a trend, it is a truth",
+                "is a story the world keeps missing"
+            ]
+        }
     },
-
-    "gaza": {
-        "start": "Gaza",
-        "neutral": [
-            "continues through patience and endurance",
-            "exists beyond daily headlines"
-        ],
-        "emotional": [
-            "holds stories written in endurance",
-            "carries strength through hardship"
-        ],
-        "documentary": [
-            "reflects human persistence under pressure",
-            "records daily life beyond statistics"
-        ],
-        "viral": [
-            "is more than what you are told",
-            "is not what headlines reduce it to"
-        ]
-    },
-
-    "maps": {
-        "start": "This historical map of Palestine",
-        "neutral": [
-            "preserves geography drawn long ago",
-            "documents land before modern narratives"
-        ],
-        "emotional": [
-            "carries memory in every line",
-            "holds stories beyond ink and paper"
-        ],
-        "documentary": [
-            "records places as they once existed",
-            "stands as visual historical evidence"
-        ],
-        "viral": [
-            "reveals what time could not erase",
-            "shows history without commentary"
-        ]
-    },
-
-    "nakba": {
-        "start": "The Nakba",
-        "neutral": [
-            "remains a defining historical moment",
-            "left an enduring impact on identity"
-        ],
-        "emotional": [
-            "lives quietly within collective memory",
-            "left echoes carried across generations"
-        ],
-        "documentary": [
-            "is documented through testimonies and history",
-            "marks a turning point in lived experience"
-        ],
-        "viral": [
-            "was not just a date in history",
-            "is more than a chapter in books"
-        ]
+    "ar": {
+        "palestine": {
+            "start": "فلسطين",
+            "neutral": [
+                "حقيقة قائمة تتجاوز العناوين",
+                "واقع محفوظ عبر الزمن"
+            ],
+            "emotional": [
+                "تعيش في الذاكرة والانتماء",
+                "تتنفس عبر الهوية والتاريخ"
+            ],
+            "documentary": [
+                "موثقة في الثقافة والذاكرة",
+                "مسجلة عبر الأجيال"
+            ],
+            "viral": [
+                "ليست ترندًا بل حقيقة",
+                "قصة يحاول العالم تجاهلها"
+            ]
+        }
     }
 }
 
 TONES = ["neutral", "emotional", "documentary", "viral"]
 
-# ================= UTILITIES =================
+# ================= UTIL =================
 def contains_blocked(text):
-    lower = text.lower()
-    return any(word in lower for word in BLOCKED_WORDS)
+    t = text.lower()
+    return any(w in t for w in BLOCKED_WORDS)
 
-def generate_hook(category, tone):
-    data = HOOKS[category]
+def generate_hook(lang, category, tone):
+    data = HOOKS[lang][category]
     emoji = random.choice(EMOJIS)
 
     for _ in range(10):
-        line1 = f"{data['start']} {random.choice(data[tone])}"
-        line2 = "A perspective shaped by memory and continuity"
-        line3 = "A story that remains present through time"
-
-        text = f"{emoji} {line1}\n{line2}\n{line3}"
+        text = (
+            f"{data['start']} {random.choice(data[tone])}\n"
+            f"A story shaped by memory\n"
+            f"A presence that continues"
+        )
 
         if not contains_blocked(text):
             tags = " ".join(random.sample(HASHTAGS[category], 2))
-            return f"{text}\n{tags} #Hatshepsut"
+            return f"{text}\n{tags} #Hatshepsut {emoji}"
 
-    return "Content could not be generated safely."
+    return None
 
 # ================= KEYBOARDS =================
-def main_menu():
-    kb = InlineKeyboardMarkup(row_width=1)
+def language_menu():
+    kb = InlineKeyboardMarkup()
     kb.add(
-        InlineKeyboardButton("🇵🇸 Palestine", callback_data="palestine"),
-        InlineKeyboardButton("🔥 Gaza", callback_data="gaza"),
-        InlineKeyboardButton("🗺️ Historical Maps", callback_data="maps"),
-        InlineKeyboardButton("🕊️ Nakba", callback_data="nakba"),
-        InlineKeyboardButton("🎲 Surprise Me", callback_data="surprise")
+        InlineKeyboardButton("🌍 English", callback_data="lang|en"),
+        InlineKeyboardButton("🌍 عربي", callback_data="lang|ar")
     )
     return kb
 
-def tone_menu(category):
+def category_menu(lang):
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(
+        InlineKeyboardButton("🇵🇸 Palestine", callback_data=f"cat|{lang}|palestine")
+    )
+    return kb
+
+def tone_menu(lang, category):
     kb = InlineKeyboardMarkup(row_width=2)
     for tone in TONES:
         kb.add(
             InlineKeyboardButton(
                 tone.capitalize(),
-                callback_data=f"tone|{category}|{tone}"
+                callback_data=f"tone|{lang}|{category}|{tone}"
             )
         )
+    return kb
+
+def again_menu(lang, category, tone):
+    kb = InlineKeyboardMarkup()
+    kb.add(
+        InlineKeyboardButton(
+            "🔄 Generate Again",
+            callback_data=f"again|{lang}|{category}|{tone}"
+        )
+    )
     return kb
 
 # ================= HANDLERS =================
@@ -177,33 +141,46 @@ def tone_menu(category):
 def start(message):
     bot.send_message(
         message.chat.id,
-        "Choose a category:",
-        reply_markup=main_menu()
+        "Choose language / اختر اللغة:",
+        reply_markup=language_menu()
     )
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle(call):
     try:
-        if call.data == "surprise":
-            category = random.choice(list(HOOKS.keys()))
-            tone = random.choice(TONES)
-            text = generate_hook(category, tone)
-            bot.send_message(call.message.chat.id, text)
-            return
+        data = call.data.split("|")
 
-        if call.data in HOOKS:
+        if data[0] == "lang":
             bot.send_message(
                 call.message.chat.id,
-                "Choose a tone:",
-                reply_markup=tone_menu(call.data)
+                "Choose category:",
+                reply_markup=category_menu(data[1])
             )
-            return
 
-        if call.data.startswith("tone|"):
-            _, category, tone = call.data.split("|")
-            text = generate_hook(category, tone)
-            bot.send_message(call.message.chat.id, text)
-            return
+        elif data[0] == "cat":
+            bot.send_message(
+                call.message.chat.id,
+                "Choose tone:",
+                reply_markup=tone_menu(data[1], data[2])
+            )
+
+        elif data[0] == "tone":
+            _, lang, category, tone = data
+            text = generate_hook(lang, category, tone)
+            if text:
+                bot.send_message(call.message.chat.id, text,
+                                 reply_markup=again_menu(lang, category, tone))
+                if CHANNEL_ID:
+                    bot.send_message(CHANNEL_ID, text)
+
+        elif data[0] == "again":
+            _, lang, category, tone = data
+            text = generate_hook(lang, category, tone)
+            if text:
+                bot.send_message(call.message.chat.id, text,
+                                 reply_markup=again_menu(lang, category, tone))
+                if CHANNEL_ID:
+                    bot.send_message(CHANNEL_ID, text)
 
     except Exception as e:
         print("ERROR:", e)
