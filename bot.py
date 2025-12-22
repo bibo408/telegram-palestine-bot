@@ -18,98 +18,84 @@ BLOCKED_WORDS = [
 ]
 
 # ================= EMOJIS =================
-EMOJIS = ["✨","🌿","🕊️","⏳","📜","🌍"]
+EMOJIS = ["🇵🇸","🕊️","🌿","⏳","📜","✨","🗺️"]
 
 # ================= CATEGORIES =================
 CATEGORIES = {
-    "palestine": "فلسطين",
-    "gaza": "غزة",
-    "maps": "خرائط تاريخية",
-    "nakba": "النكبة"
+    "palestine": "🇵🇸 فلسطين",
+    "gaza": "🔥 غزة",
+    "maps": "🗺️ خرائط فلسطين",
+    "memory": "📜 الذاكرة الفلسطينية"
 }
+
+# ================= PALESTINIAN IDENTITY ANCHORS =================
+IDENTITY_LINES = [
+    "Palestine lives beyond borders and headlines.",
+    "Palestinian identity is not a narrative — it is a reality.",
+    "This is Palestine, remembered without permission.",
+    "Gaza remains Palestinian in memory and presence.",
+    "Palestine exists wherever its memory is carried."
+]
 
 # ================= HOOK STYLES =================
 HOOK_STYLES = {
-    "سؤال": [
-        "What remains when time refuses to erase the truth?",
-        "Have you ever wondered what history chose to remember?"
+    "🎯 تصريح قوي": [
+        "Some identities cannot be erased by time.",
+        "Truth does not disappear when ignored."
     ],
-    "تصريح قوي": [
-        "This is not a story — it is a presence.",
-        "Some truths do not fade with time."
+    "❓ سؤال ذكي": [
+        "What does history try — and fail — to silence?",
+        "What remains when memory refuses to fade?"
     ],
-    "مقارنة": [
-        "What is written is not always what is remembered.",
-        "Maps change, memory does not."
+    "🧠 توثيقي هادئ": [
+        "Recorded quietly, preserved carefully.",
+        "Archived without noise or commentary."
     ],
-    "صدمة هادئة": [
-        "No sound. No headline. Still remembered.",
+    "⚡ صدمة هادئة": [
+        "No headline. No noise. Still remembered.",
         "Nothing dramatic — yet everything is permanent."
-    ],
-    "توثيقي": [
-        "Recorded quietly. Preserved carefully.",
-        "Archived beyond noise and commentary."
     ]
 }
 
 # ================= CORE MEANINGS =================
 CORE_MEANINGS = {
     "palestine": [
-        "A land carried through memory, not headlines",
+        "A land carried through generations, not trends",
         "An identity preserved beyond time"
     ],
     "gaza": [
-        "A place defined by endurance, not description",
-        "Stories that exist beyond what is shown"
+        "A Palestinian place defined by endurance",
+        "Stories that exist beyond description"
     ],
     "maps": [
-        "Lines that remember what time tried to change",
-        "Geography drawn before narratives shifted"
+        "Palestinian geography drawn before narratives shifted",
+        "Maps that remember Palestine clearly"
     ],
-    "nakba": [
-        "A moment that reshaped memory forever",
-        "History that continues without announcement"
+    "memory": [
+        "A Palestinian memory passed without interruption",
+        "History carried quietly across generations"
     ]
 }
 
 # ================= EMOTIONAL SLIDER =================
 EMOTION_LEVELS = {
-    "هادئ": {
-        "prefix": ["Quietly.", "Softly."],
-        "suffix": ["Without noise.", "Without commentary."]
+    "🌿 هادئ": {
+        "suffix": ["Without noise.", "Without explanation."]
     },
-    "متوسط": {
-        "prefix": ["Still.", "Yet."],
+    "🔥 متوسط": {
         "suffix": ["And it remains.", "And it continues."]
     },
-    "عالي": {
-        "prefix": ["Unforgotten.", "Undeniable."],
-        "suffix": ["Even now.", "Against time itself."]
+    "⚡ عالي": {
+        "suffix": ["Against time itself.", "Even now."]
     }
 }
 
 # ================= HASHTAG AI MIXER =================
 HASHTAGS = {
-    "palestine": {
-        "safe": ["#Palestine", "#History", "#Identity"],
-        "viral": ["#Truth", "#Memory", "#Land"],
-        "niche": ["#CulturalMemory", "#RecordedHistory"]
-    },
-    "gaza": {
-        "safe": ["#Gaza", "#HumanStories"],
-        "viral": ["#Untold", "#BeyondHeadlines"],
-        "niche": ["#DailyLife", "#SilentStories"]
-    },
-    "maps": {
-        "safe": ["#HistoricalMaps", "#Cartography"],
-        "viral": ["#VisualHistory"],
-        "niche": ["#OldMaps", "#GeographicMemory"]
-    },
-    "nakba": {
-        "safe": ["#Nakba", "#HistoricalMoment"],
-        "viral": ["#CollectiveMemory"],
-        "niche": ["#OralHistory"]
-    }
+    "palestine": ["#Palestine", "#PalestinianIdentity", "#Memory"],
+    "gaza": ["#Gaza", "#PalestinianLife", "#Stories"],
+    "maps": ["#PalestineMaps", "#HistoricalMemory", "#Cartography"],
+    "memory": ["#PalestinianMemory", "#History", "#Identity"]
 }
 
 # ================= UTIL =================
@@ -118,24 +104,19 @@ def contains_blocked(text):
     return any(w in t for w in BLOCKED_WORDS)
 
 def mix_hashtags(category):
-    sets = HASHTAGS[category]
-    result = []
-    result += random.sample(sets["safe"], min(2, len(sets["safe"])))
-    result += random.sample(sets["viral"], 1)
-    result += random.sample(sets["niche"], 1)
-    return " ".join(result)
+    base = HASHTAGS[category]
+    return " ".join(random.sample(base, min(3, len(base))))
 
 # ================= HOOK ENGINE =================
 def generate_hook(category, style, emotion):
     for _ in range(10):
-        opening = random.choice(HOOK_STYLES[style])
+        identity = random.choice(IDENTITY_LINES)
+        hook = random.choice(HOOK_STYLES[style])
         core = random.choice(CORE_MEANINGS[category])
-        emo = EMOTION_LEVELS[emotion]
-        prefix = random.choice(emo["prefix"])
-        suffix = random.choice(emo["suffix"])
+        suffix = random.choice(EMOTION_LEVELS[emotion]["suffix"])
         emoji = random.choice(EMOJIS)
 
-        text = f"{prefix} {opening} {core}. {suffix} {emoji}"
+        text = f"{identity} {hook} {core}. {suffix} {emoji}"
 
         if not contains_blocked(text):
             hashtags = mix_hashtags(category)
@@ -151,7 +132,7 @@ def category_menu():
     return kb
 
 def style_menu(category):
-    kb = InlineKeyboardMarkup(row_width=2)
+    kb = InlineKeyboardMarkup(row_width=1)
     for s in HOOK_STYLES.keys():
         kb.add(InlineKeyboardButton(s, callback_data=f"style|{category}|{s}"))
     return kb
@@ -176,7 +157,7 @@ def action_menu(category, style, emotion):
 def start(message):
     bot.send_message(
         message.chat.id,
-        "اختار القسم:",
+        "🇵🇸 اختار القسم الفلسطيني:",
         reply_markup=category_menu()
     )
 
@@ -186,7 +167,7 @@ def handle(call):
 
     if data[0] == "cat":
         bot.edit_message_text(
-            "اختار نوع الهوك:",
+            "🎨 اختار أسلوب الجملة:",
             call.message.chat.id,
             call.message.message_id,
             reply_markup=style_menu(data[1])
@@ -194,7 +175,7 @@ def handle(call):
 
     elif data[0] == "style":
         bot.edit_message_text(
-            "اختار مستوى الإحساس:",
+            "🎭 اختار مستوى الإحساس:",
             call.message.chat.id,
             call.message.message_id,
             reply_markup=emotion_menu(data[1], data[2])
@@ -219,8 +200,8 @@ def handle(call):
         )
 
     elif data[0] == "rate":
-        bot.answer_callback_query(call.id, "تم تسجيل رأيك ✅")
+        bot.answer_callback_query(call.id, "✔️ تم تسجيل رأيك")
 
 # ================= RUN =================
-print("Bot running with Intelligence Engine...")
+print("🇵🇸 Palestinian Hook Engine is running...")
 bot.infinity_polling(skip_pending=True)
