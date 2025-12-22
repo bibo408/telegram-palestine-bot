@@ -4,224 +4,223 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
-import re
 
 # ================= BOT =================
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-# ================= BLOCKED ROOTS =================
-BLOCKED_PATTERNS = [
-    r"viol", r"conflict", r"resist", r"occup",
-    r"zion", r"israel", r"jew",
-    r"kill", r"bomb", r"attack",
-    r"destroy", r"missil", r"rocket",
-    r"fraud", r"scam"
+# ================= BLOCKED WORDS =================
+BLOCKED_WORDS = [
+    "conflict","violence","violent","resistance","occupation",
+    "zion","zionist","jewish","israel","israeli",
+    "attack","kill","bomb","fight","destroy",
+    "missile","rocket","fraud","scam","steadfastness"
 ]
 
 # ================= EMOJIS =================
-EMOJIS = ["🇵🇸", "🕊️", "🌿", "📜", "🗺️", "⏳", "✨"]
+EMOJIS = ["✨","🌿","🕊️","⏳","📜","🌍"]
 
-# ================= HASHTAGS =================
-HASHTAGS = {
-    "palestine": ["#Palestine", "#PalestinianIdentity", "#FreePalestine"],
-    "gaza": ["#Gaza", "#HumanStories", "#LifeBeyondHeadlines"],
-    "maps": ["#HistoricalMaps", "#PalestineMaps", "#Cartography"],
-    "nakba": ["#Nakba", "#HistoricalMemory", "#CollectiveMemory"]
+# ================= CATEGORIES =================
+CATEGORIES = {
+    "palestine": "فلسطين",
+    "gaza": "غزة",
+    "maps": "خرائط تاريخية",
+    "nakba": "النكبة"
 }
 
-# ================= HOOK ENGINE WITH TONES =================
-HOOK_ENGINE = {
-    "palestine": {
-        "neutral": {
-            "l1": ["Palestine exists beyond headlines"],
-            "l2": ["it represents continuity, memory, and identity"],
-            "l3": ["and its presence remains undeniable"]
-        },
-        "emotional": {
-            "l1": ["Palestine was never easy to forget"],
-            "l2": ["it lives quietly inside memory and belonging"],
-            "l3": ["and that feeling refuses to disappear"]
-        },
-        "documentary": {
-            "l1": ["Palestine is documented across history"],
-            "l2": ["through records, culture, and lived experience"],
-            "l3": ["forming an uninterrupted narrative"]
-        },
-        "viral": {
-            "l1": ["Palestine was never a trend"],
-            "l2": ["it was always a reality ignored too often"],
-            "l3": ["and that truth still stands"]
-        }
-    },
+# ================= HOOK STYLES =================
+HOOK_STYLES = {
+    "سؤال": [
+        "What remains when time refuses to erase the truth?",
+        "Have you ever wondered what history chose to remember?"
+    ],
+    "تصريح قوي": [
+        "This is not a story — it is a presence.",
+        "Some truths do not fade with time."
+    ],
+    "مقارنة": [
+        "What is written is not always what is remembered.",
+        "Maps change, memory does not."
+    ],
+    "صدمة هادئة": [
+        "No sound. No headline. Still remembered.",
+        "Nothing dramatic — yet everything is permanent."
+    ],
+    "توثيقي": [
+        "Recorded quietly. Preserved carefully.",
+        "Archived beyond noise and commentary."
+    ]
+}
 
-    "gaza": {
-        "neutral": {
-            "l1": ["Gaza exists beyond daily headlines"],
-            "l2": ["it reflects ordinary life under constant pressure"],
-            "l3": ["where meaning continues quietly"]
-        },
-        "emotional": {
-            "l1": ["Gaza carries stories few hear"],
-            "l2": ["where endurance becomes a language"],
-            "l3": ["and humanity stays visible"]
-        },
-        "documentary": {
-            "l1": ["Gaza represents lived human reality"],
-            "l2": ["documented through daily survival and resilience"],
-            "l3": ["forming a continuous human record"]
-        },
-        "viral": {
-            "l1": ["Gaza was never what screens showed"],
-            "l2": ["it was always what cameras avoided"],
-            "l3": ["and that silence speaks loudly"]
-        }
-    },
+# ================= CORE MEANINGS =================
+CORE_MEANINGS = {
+    "palestine": [
+        "A land carried through memory, not headlines",
+        "An identity preserved beyond time"
+    ],
+    "gaza": [
+        "A place defined by endurance, not description",
+        "Stories that exist beyond what is shown"
+    ],
+    "maps": [
+        "Lines that remember what time tried to change",
+        "Geography drawn before narratives shifted"
+    ],
+    "nakba": [
+        "A moment that reshaped memory forever",
+        "History that continues without announcement"
+    ]
+}
 
-    "maps": {
-        "neutral": {
-            "l1": ["This historical map of Palestine records geography"],
-            "l2": ["drawn long before modern narratives"],
-            "l3": ["preserving memory through lines"]
-        },
-        "emotional": {
-            "l1": ["This historical map carries memory"],
-            "l2": ["where every line reflects belonging"],
-            "l3": ["and history breathes quietly"]
-        },
-        "documentary": {
-            "l1": ["This historical map of Palestine documents land"],
-            "l2": ["through verified names and locations"],
-            "l3": ["forming visual historical evidence"]
-        },
-        "viral": {
-            "l1": ["This historical map shows what time couldn't erase"],
-            "l2": ["a land drawn before reinterpretation"],
-            "l3": ["and truth preserved on paper"]
-        }
+# ================= EMOTIONAL SLIDER =================
+EMOTION_LEVELS = {
+    "هادئ": {
+        "prefix": ["Quietly.", "Softly."],
+        "suffix": ["Without noise.", "Without commentary."]
     },
-
-    "nakba": {
-        "neutral": {
-            "l1": ["The Nakba remains a defining historical moment"],
-            "l2": ["that reshaped lives and everyday reality"],
-            "l3": ["with lasting consequences"]
-        },
-        "emotional": {
-            "l1": ["The Nakba lives quietly in memory"],
-            "l2": ["carried across generations"],
-            "l3": ["where loss became shared experience"]
-        },
-        "documentary": {
-            "l1": ["The Nakba is recorded through testimonies"],
-            "l2": ["documenting widespread displacement"],
-            "l3": ["as a lasting historical reference"]
-        },
-        "viral": {
-            "l1": ["The Nakba was never just a date"],
-            "l2": ["it marked a shift in lived reality"],
-            "l3": ["and its meaning still unfolds"]
-        }
+    "متوسط": {
+        "prefix": ["Still.", "Yet."],
+        "suffix": ["And it remains.", "And it continues."]
+    },
+    "عالي": {
+        "prefix": ["Unforgotten.", "Undeniable."],
+        "suffix": ["Even now.", "Against time itself."]
     }
 }
 
-TONES = ["neutral", "emotional", "documentary", "viral"]
-
-# ================= SAFETY =================
-def is_safe(text):
-    t = text.lower()
-    return not any(re.search(p, t) for p in BLOCKED_PATTERNS)
-
-# ================= GENERATOR =================
-def generate_hook(category, tone):
-    data = HOOK_ENGINE[category][tone]
-
-    for _ in range(10):
-        l1 = random.choice(data["l1"])
-        l2 = random.choice(data["l2"])
-        l3 = random.choice(data["l3"])
-
-        text = f"{l1}\n{l2}\n{l3}"
-
-        if is_safe(text):
-            emoji = random.choice(EMOJIS)
-            tags = " ".join(random.sample(HASHTAGS[category], 2))
-            return f"{text}\n{tags} #Hatshepsut {emoji}"
-
-    return "Content could not be generated safely."
-
-# ================= TRANSLATION (FULL & CLEAN) =================
-AR_TRANSLATIONS = {
-    "Palestine exists beyond headlines": "فلسطين تتجاوز العناوين",
-    "Palestine was never a trend": "فلسطين لم تكن يومًا ترند",
-    "Gaza exists beyond daily headlines": "غزة تتجاوز العناوين اليومية",
-    "This historical map of Palestine": "هذه خريطة تاريخية لفلسطين",
-    "The Nakba": "النكبة"
+# ================= HASHTAG AI MIXER =================
+HASHTAGS = {
+    "palestine": {
+        "safe": ["#Palestine", "#History", "#Identity"],
+        "viral": ["#Truth", "#Memory", "#Land"],
+        "niche": ["#CulturalMemory", "#RecordedHistory"]
+    },
+    "gaza": {
+        "safe": ["#Gaza", "#HumanStories"],
+        "viral": ["#Untold", "#BeyondHeadlines"],
+        "niche": ["#DailyLife", "#SilentStories"]
+    },
+    "maps": {
+        "safe": ["#HistoricalMaps", "#Cartography"],
+        "viral": ["#VisualHistory"],
+        "niche": ["#OldMaps", "#GeographicMemory"]
+    },
+    "nakba": {
+        "safe": ["#Nakba", "#HistoricalMoment"],
+        "viral": ["#CollectiveMemory"],
+        "niche": ["#OralHistory"]
+    }
 }
 
-def translate_full(text):
-    lines = text.split("\n")
-    translated = []
+# ================= UTIL =================
+def contains_blocked(text):
+    t = text.lower()
+    return any(w in t for w in BLOCKED_WORDS)
 
-    for line in lines:
-        for en, ar in AR_TRANSLATIONS.items():
-            if line.startswith(en):
-                line = line.replace(en, ar)
-        translated.append(line)
+def mix_hashtags(category):
+    sets = HASHTAGS[category]
+    result = []
+    result += random.sample(sets["safe"], min(2, len(sets["safe"])))
+    result += random.sample(sets["viral"], 1)
+    result += random.sample(sets["niche"], 1)
+    return " ".join(result)
 
-    return "\n".join(translated)
+# ================= HOOK ENGINE =================
+def generate_hook(category, style, emotion):
+    for _ in range(10):
+        opening = random.choice(HOOK_STYLES[style])
+        core = random.choice(CORE_MEANINGS[category])
+        emo = EMOTION_LEVELS[emotion]
+        prefix = random.choice(emo["prefix"])
+        suffix = random.choice(emo["suffix"])
+        emoji = random.choice(EMOJIS)
+
+        text = f"{prefix} {opening} {core}. {suffix} {emoji}"
+
+        if not contains_blocked(text):
+            hashtags = mix_hashtags(category)
+            return f"<code>{text}\n\n{hashtags}</code>"
+
+    return "<code>Content could not be generated safely.</code>"
 
 # ================= KEYBOARDS =================
-def tone_menu(lang, category):
+def category_menu():
     kb = InlineKeyboardMarkup(row_width=2)
-    for t in TONES:
-        kb.add(InlineKeyboardButton(t.capitalize(), callback_data=f"gen|{lang}|{category}|{t}"))
+    for k, v in CATEGORIES.items():
+        kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
-def action_menu(lang, category, tone, text):
+def style_menu(category):
+    kb = InlineKeyboardMarkup(row_width=2)
+    for s in HOOK_STYLES.keys():
+        kb.add(InlineKeyboardButton(s, callback_data=f"style|{category}|{s}"))
+    return kb
+
+def emotion_menu(category, style):
+    kb = InlineKeyboardMarkup(row_width=3)
+    for e in EMOTION_LEVELS.keys():
+        kb.add(InlineKeyboardButton(e, callback_data=f"emo|{category}|{style}|{e}"))
+    return kb
+
+def action_menu(category, style, emotion):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{lang}|{category}|{tone}"),
-        InlineKeyboardButton("📋 Copy", switch_inline_query_current_chat=text)
+        InlineKeyboardButton("🔄 توليد مرة تانية", callback_data=f"again|{category}|{style}|{emotion}"),
+        InlineKeyboardButton("👍 قوي", callback_data="rate|up"),
+        InlineKeyboardButton("👎 ضعيف", callback_data="rate|down")
     )
     return kb
 
 # ================= HANDLERS =================
 @bot.message_handler(commands=["start"])
 def start(message):
-    kb = InlineKeyboardMarkup()
-    kb.add(
-        InlineKeyboardButton("🌍 English", callback_data="lang|en"),
-        InlineKeyboardButton("🌍 عربي", callback_data="lang|ar")
+    bot.send_message(
+        message.chat.id,
+        "اختار القسم:",
+        reply_markup=category_menu()
     )
-    bot.send_message(message.chat.id, "Choose language / اختر اللغة:", reply_markup=kb)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle(call):
     data = call.data.split("|")
 
-    if data[0] == "lang":
-        lang = data[1]
-        kb = InlineKeyboardMarkup(row_width=1)
-        kb.add(
-            InlineKeyboardButton("🇵🇸 Palestine", callback_data=f"cat|{lang}|palestine"),
-            InlineKeyboardButton("🔥 Gaza", callback_data=f"cat|{lang}|gaza"),
-            InlineKeyboardButton("🗺️ Maps", callback_data=f"cat|{lang}|maps"),
-            InlineKeyboardButton("🕊️ Nakba", callback_data=f"cat|{lang}|nakba")
+    if data[0] == "cat":
+        bot.edit_message_text(
+            "اختار نوع الهوك:",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=style_menu(data[1])
         )
-        bot.send_message(call.message.chat.id, "Choose category:", reply_markup=kb)
 
-    elif data[0] == "cat":
-        _, lang, category = data
-        bot.send_message(call.message.chat.id, "Choose tone:", reply_markup=tone_menu(lang, category))
+    elif data[0] == "style":
+        bot.edit_message_text(
+            "اختار مستوى الإحساس:",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=emotion_menu(data[1], data[2])
+        )
 
-    elif data[0] in ["gen", "again"]:
-        _, lang, category, tone = data
-        text = generate_hook(category, tone)
-        if lang == "ar":
-            text = translate_full(text)
-        bot.send_message(call.message.chat.id, text, reply_markup=action_menu(lang, category, tone, text))
+    elif data[0] == "emo":
+        _, category, style, emotion = data
+        text = generate_hook(category, style, emotion)
+        bot.send_message(
+            call.message.chat.id,
+            text,
+            reply_markup=action_menu(category, style, emotion)
+        )
+
+    elif data[0] == "again":
+        _, category, style, emotion = data
+        text = generate_hook(category, style, emotion)
+        bot.send_message(
+            call.message.chat.id,
+            text,
+            reply_markup=action_menu(category, style, emotion)
+        )
+
+    elif data[0] == "rate":
+        bot.answer_callback_query(call.id, "تم تسجيل رأيك ✅")
 
 # ================= RUN =================
-print("Bot is running clean and stable...")
+print("Bot running with Intelligence Engine...")
 bot.infinity_polling(skip_pending=True)
