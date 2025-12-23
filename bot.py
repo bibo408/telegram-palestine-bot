@@ -5,29 +5,23 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
 
-# ================= BOT =================
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # ================= BLOCKED WORDS =================
-BLOCKED_WORDS = [
+BLOCKED = [
     "conflict","violence","violent","resistance","occupation",
     "zion","zionist","jewish","israel","israeli",
-    "attack","kill","bomb","fight","destroy",
-    "missile","rocket","fraud","scam","steadfastness"
+    "attack","kill","bomb","destroy","rocket","missile",
+    "fraud","scam"
 ]
 
-# ================= EMOJIS =================
-EMOJIS = ["🇵🇸","🕊️","🌿","⏳","📜","✨","🗺️"]
+def safe(text):
+    t = text.lower()
+    return not any(w in t for w in BLOCKED)
 
-# ================= OPENING CONTROL =================
-OPENINGS = {
-    "palestine": ["Palestine", "This land", "This place"],
-    "gaza": ["Gaza", "This place", "This land"],
-    "maps": ["This historical map", "This map", "This record"],
-    "memory": ["This memory", "This history", "This moment"],
-    "nakba": ["The Nakba", "That year", "That moment"]
-}
+# ================= EMOJIS =================
+EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
 
 # ================= CATEGORIES =================
 CATEGORIES = {
@@ -38,164 +32,124 @@ CATEGORIES = {
     "nakba": "🕊️ النكبة وأحداثها"
 }
 
-# ================= CORE IDEAS =================
-CORE_IDEAS = {
+# ================= OPENINGS (SMART) =================
+OPENINGS = {
+    "maps": [
+        "This is a historical map of Palestine before 1948",
+        "This historical map shows Palestine prior to 1948",
+        "A historical map documenting Palestine before 1948"
+    ],
     "palestine": [
-        "carries Palestinian identity beyond time",
-        "exists through memory, not permission",
-        "remains present through generations"
+        "Palestine has always existed as a living identity",
+        "Palestine remains present beyond time",
+        "Palestine lives through memory and place"
     ],
     "gaza": [
-        "reflects Palestinian presence in daily life",
-        "holds stories shaped by patience",
-        "remains part of Palestinian identity"
-    ],
-    "maps": [
-        "documents Palestinian geography clearly",
-        "preserves names drawn long ago",
-        "records land before narratives changed"
+        "Gaza represents a continuous Palestinian presence",
+        "Gaza reflects daily Palestinian life",
+        "Gaza holds stories shaped by time"
     ],
     "memory": [
-        "passes quietly between generations",
-        "lives without needing explanation",
-        "remains intact through remembrance"
+        "Palestinian memory carries identity forward",
+        "This memory passes quietly through generations",
+        "This history lives without needing permission"
     ],
     "nakba": [
-        "changed lives without erasing identity",
-        "left memories carried through generations",
-        "reshaped daily life without ending belonging"
+        "The Nakba reshaped Palestinian daily life",
+        "The Nakba marked a turning point in history",
+        "That moment in history changed lives forever"
     ]
 }
 
-# ================= CONTRAST BUILDER =================
-CONTRASTS = [
-    "yet it remains undeniable",
-    "even when ignored",
-    "while time continues",
-    ""
+# ================= DEVELOPMENT LAYERS =================
+MIDDLES = [
+    "not as a claim, but as a fact",
+    "through names, places, and remembrance",
+    "without needing explanation",
+    "beyond narratives and timelines"
 ]
 
-# ================= EMOTION LAYERS =================
-EMOTIONS = {
-    "🌿 هادئ": ["without noise", "without display"],
-    "🕊️ تأملي": ["carried quietly", "remembered softly"],
-    "🔥 مؤثر": ["deeply felt", "clearly present"],
-    "⏳ خارج الزمن": ["beyond time", "outside timelines"]
-}
+ENDINGS = [
+    "remaining undeniably Palestinian",
+    "rooted in Palestinian identity",
+    "connected to Palestine forever",
+    "preserved as Palestinian memory"
+]
 
-# ================= HASHTAG ROLES =================
+# ================= HASHTAGS =================
 HASHTAGS = {
-    "identity": ["#Palestine", "#PalestinianIdentity"],
-    "memory": ["#Memory", "#PalestinianMemory"],
-    "history": ["#History", "#HistoricalRecord"],
-    "culture": ["#Heritage", "#Culture"],
-    "brand": ["#Hatshepsut"]
+    "palestine": "#Palestine #PalestinianIdentity #Hatshepsut",
+    "gaza": "#Gaza #PalestinianMemory #Hatshepsut",
+    "maps": "#HistoricalMap #Palestine #Hatshepsut",
+    "memory": "#Memory #PalestinianHistory #Hatshepsut",
+    "nakba": "#Nakba #PalestinianMemory #Hatshepsut"
 }
-
-CATEGORY_TAG_MAP = {
-    "palestine": ["identity","culture","brand"],
-    "gaza": ["identity","memory","brand"],
-    "maps": ["history","memory","brand"],
-    "memory": ["memory","culture","brand"],
-    "nakba": ["memory","history","brand"]
-}
-
-# ================= UTIL =================
-def contains_blocked(text):
-    t = text.lower()
-    return any(w in t for w in BLOCKED_WORDS)
-
-def mix_hashtags(category):
-    roles = CATEGORY_TAG_MAP[category]
-    tags = []
-    for r in roles:
-        tags.append(random.choice(HASHTAGS[r]))
-    return " ".join(tags)
 
 # ================= HOOK ENGINE =================
-def generate_hook(category, emotion):
-    for _ in range(15):
-        opening = random.choice(OPENINGS[category])
-        core = random.choice(CORE_IDEAS[category])
-        contrast = random.choice(CONTRASTS)
-        emotion_line = random.choice(EMOTIONS[emotion])
+def generate_hook(category):
+    for _ in range(20):
+        o = random.choice(OPENINGS[category])
+        m = random.choice(MIDDLES)
+        e = random.choice(ENDINGS)
         emoji = random.choice(EMOJIS)
 
-        line1 = f"{opening} {core}"
-        line2 = contrast if contrast else emotion_line
-        line3 = f"remembered as Palestinian identity"
+        text = (
+            f"{o},\n"
+            f"{m},\n"
+            f"{e}. {emoji}\n\n"
+            f"{HASHTAGS[category]}"
+        )
 
-        text = f"{line1},\n{line2},\n{line3}. {emoji}"
+        if safe(text):
+            return f"<code>{text}</code>"
 
-        if not contains_blocked(text):
-            return f"<code>{text}\n\n{mix_hashtags(category)}</code>"
-
-    return "<code>Content could not be generated safely.</code>"
+    return "<code>Could not generate safe content.</code>"
 
 # ================= KEYBOARDS =================
-def category_menu():
+def categories_kb():
     kb = InlineKeyboardMarkup(row_width=2)
     for k,v in CATEGORIES.items():
         kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
-def emotion_menu(category):
-    kb = InlineKeyboardMarkup(row_width=2)
-    for e in EMOTIONS.keys():
-        kb.add(InlineKeyboardButton(e, callback_data=f"emo|{category}|{e}"))
-    return kb
-
-def action_menu(category, emotion):
-    kb = InlineKeyboardMarkup(row_width=2)
+def again_kb(category):
+    kb = InlineKeyboardMarkup()
     kb.add(
-        InlineKeyboardButton("🔄 توليد مرة تانية", callback_data=f"again|{category}|{emotion}"),
-        InlineKeyboardButton("👍 قوي", callback_data="rate|up"),
-        InlineKeyboardButton("👎 ضعيف", callback_data="rate|down")
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}")
     )
     return kb
 
 # ================= HANDLERS =================
 @bot.message_handler(commands=["start"])
-def start(message):
+def start(m):
     bot.send_message(
-        message.chat.id,
+        m.chat.id,
         "🇵🇸 اختار القسم:",
-        reply_markup=category_menu()
+        reply_markup=categories_kb()
     )
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle(call):
-    data = call.data.split("|")
+@bot.callback_query_handler(func=lambda c: True)
+def handle(c):
+    data = c.data.split("|")
 
     if data[0] == "cat":
-        bot.edit_message_text(
-            "🎭 اختار الإحساس:",
-            call.message.chat.id,
-            call.message.message_id,
-            reply_markup=emotion_menu(data[1])
-        )
-
-    elif data[0] == "emo":
-        _, category, emotion = data
-        text = generate_hook(category, emotion)
+        category = data[1]
+        text = generate_hook(category)
         bot.send_message(
-            call.message.chat.id,
+            c.message.chat.id,
             text,
-            reply_markup=action_menu(category, emotion)
+            reply_markup=again_kb(category)
         )
 
     elif data[0] == "again":
-        _, category, emotion = data
-        text = generate_hook(category, emotion)
+        category = data[1]
+        text = generate_hook(category)
         bot.send_message(
-            call.message.chat.id,
+            c.message.chat.id,
             text,
-            reply_markup=action_menu(category, emotion)
+            reply_markup=again_kb(category)
         )
 
-    elif data[0] == "rate":
-        bot.answer_callback_query(call.id, "✔️ تم تسجيل رأيك")
-
 # ================= RUN =================
-print("🇵🇸 Palestinian Hook Engine running...")
+print("🇵🇸 Smart Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
