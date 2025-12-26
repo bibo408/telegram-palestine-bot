@@ -76,27 +76,87 @@ OPENINGS = {
     "maps": [
         "This is a historical map of Palestine before 1948",
         "A documented historical map of Palestine prior to 1948",
-        "This historical map records Palestine as it existed before 1948"
+        "This historical map records Palestine as it existed before 1948",
+        "Explore the Palestinian landscape as it was pre-1948",
+        "Palestine before 1948, captured in this historical map",
+        "This map showcases Palestine in its historical borders",
+        "A visual record of Palestinian territory before 1948",
+        "Mapping Palestine's historical geography prior to 1948",
+        "The pre-1948 borders of Palestine displayed here",
+        "This archival map preserves Palestine's past",
+        "Palestine depicted historically before 1948",
+        "A visual documentation of Palestine pre-1948",
+        "Historical cartography of Palestine before 1948",
+        "Palestine’s geography prior to 1948 in detail",
+        "Detailed map illustrating Palestine before 1948"
     ],
     "palestine": [
         "Palestine exists as a continuous identity",
         "Palestine lives beyond time and narration",
-        "Palestine remains present through memory and place"
+        "Palestine remains present through memory and place",
+        "Palestinian identity persists throughout history",
+        "Palestine endures through culture and memory",
+        "Palestinian heritage remains alive today",
+        "Palestine’s story continues through generations",
+        "Palestine stands as a living history",
+        "Palestinian land holds an eternal identity",
+        "Palestine maintains its presence despite challenges",
+        "Palestinian culture and identity persist",
+        "Palestine’s existence transcends time",
+        "Palestine lives in memory and spirit",
+        "Palestine remains a core identity",
+        "Palestine is eternal through history and people"
     ],
     "gaza": [
         "Gaza represents daily Palestinian presence",
         "Gaza carries Palestinian identity forward",
-        "Gaza reflects lived Palestinian reality"
+        "Gaza reflects lived Palestinian reality",
+        "Life in Gaza embodies Palestinian continuity",
+        "Gaza holds centuries of history and memory",
+        "The streets of Gaza tell Palestinian stories",
+        "Gaza preserves Palestinian culture and life",
+        "Every corner of Gaza reflects history",
+        "Gaza's people maintain enduring heritage",
+        "Daily life in Gaza sustains identity",
+        "Gaza remains a symbol of Palestinian resilience",
+        "Gaza mirrors Palestinian tradition and life",
+        "Gaza is a living witness to history",
+        "Palestinian presence thrives in Gaza",
+        "Gaza’s daily rhythm preserves identity"
     ],
     "memory": [
         "Palestinian memory moves quietly through generations",
         "Memory preserves Palestinian identity without interruption",
-        "This memory carries Palestine forward"
+        "This memory carries Palestine forward",
+        "Heritage keeps the Palestinian story alive",
+        "Memory ensures identity continuity",
+        "Collective remembrance sustains culture",
+        "Memory of Palestine persists through time",
+        "Palestinian history is carried in memory",
+        "Past generations’ memory informs today",
+        "Memory anchors Palestinian identity",
+        "Stories and recollections preserve heritage",
+        "Historical memory maintains culture",
+        "Memory of Palestine shapes the present",
+        "Heritage remembered across generations",
+        "Palestinian memory is ever-living"
     ],
     "nakba": [
         "The Nakba reshaped Palestinian daily life",
         "The Nakba marked a historical turning point",
-        "That moment in history altered Palestinian lives"
+        "That moment in history altered Palestinian lives",
+        "The Nakba changed the course of history",
+        "Lives were transformed during the Nakba",
+        "Nakba represents a critical historical moment",
+        "Palestinian life was forever changed by the Nakba",
+        "The Nakba reshaped communities and culture",
+        "History remembers the Nakba vividly",
+        "Nakba’s impact echoes through generations",
+        "The Nakba is a pivotal historical event",
+        "Palestinian identity was challenged during Nakba",
+        "Nakba left lasting historical footprints",
+        "Lives and memory were altered by Nakba",
+        "The Nakba defined a new era for Palestine"
     ]
 }
 
@@ -106,39 +166,83 @@ MOODS = {
         "middles": [
             "documented carefully without commentary",
             "recorded through names, places, and memory",
-            "preserved without noise or exaggeration"
+            "preserved without noise or exaggeration",
+            "carefully noted through historical references",
+            "recorded from oral histories",
+            "documented with attention to every detail",
+            "observed and chronicled with precision",
+            "noted faithfully through evidence"
         ],
         "endings": [
             "as part of Palestinian historical continuity",
             "within Palestinian collective memory",
-            "as a documented Palestinian reality"
+            "as a documented Palestinian reality",
+            "as part of the enduring Palestinian narrative",
+            "ensuring memory remains intact for generations",
+            "recorded for historical accuracy",
+            "maintaining authentic Palestinian heritage",
+            "preserved for future generations"
         ]
     },
     "⚡ مكثف عميق": {
         "middles": [
             "beyond headlines and explanations",
             "without needing validation",
-            "outside imposed narratives"
+            "outside imposed narratives",
+            "beyond public perception",
+            "through deep analysis",
+            "without external commentary",
+            "beyond superficial accounts",
+            "through concentrated focus"
         ],
         "endings": [
             "remaining undeniably Palestinian",
             "rooted deeply in Palestinian identity",
-            "connected permanently to Palestine"
+            "connected permanently to Palestine",
+            "standing firmly as Palestinian",
+            "deeply embedded in identity",
+            "held strongly through culture",
+            "unshaken in heritage",
+            "anchored in Palestinian reality"
         ]
     },
     "✨ تأملي إنساني": {
         "middles": [
             "through quiet remembrance",
             "through lived experience",
-            "through memory carried forward"
+            "through memory carried forward",
+            "in silent reflection",
+            "through personal connection",
+            "through empathetic understanding",
+            "with mindful observation",
+            "reflecting human experience"
         ],
         "endings": [
             "held gently within Palestinian memory",
             "remembered without permission",
-            "kept alive through identity"
+            "kept alive through identity",
+            "nurtured in cultural consciousness",
+            "preserved in hearts and minds",
+            "honored through collective remembrance",
+            "maintained with care",
+            "safeguarded in human memory"
         ]
     }
 }
+
+# ================= SYNONYMS =================
+SYNONYMS = {
+    "historical": ["documented", "archival", "recorded"],
+    "Palestine": ["Palestinian land", "the land of Palestine", "Palestinian homeland"],
+    "memory": ["heritage", "legacy", "recollection"],
+    "identity": ["being", "essence", "character"],
+    "life": ["existence", "daily life", "lifestyle"]
+}
+
+def apply_synonyms(text):
+    for word, options in SYNONYMS.items():
+        text = text.replace(word, random.choice(options))
+    return text
 
 # ================= HASHTAGS =================
 HASHTAGS = {
@@ -207,6 +311,8 @@ def generate_hook(uid, category, mood):
             f"{ending}. {emoji}\n\n"
             f"{HASHTAGS[category]}"
         )
+
+        raw = apply_synonyms(raw)
 
         if safe(raw) and semantic_safe(raw):
             remember(uid, key)
