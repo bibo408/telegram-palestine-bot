@@ -20,16 +20,16 @@ def safe(text):
     t = text.lower()
     return not any(w in t for w in BLOCKED)
 
-# ================= USER VARIATION MEMORY =================
+# ================= USER VARIATION LOCK =================
 USER_HISTORY = {}
 
-def seen_before(user_id, key):
-    if user_id not in USER_HISTORY:
-        USER_HISTORY[user_id] = set()
-    return key in USER_HISTORY[user_id]
+def seen_before(uid, key):
+    if uid not in USER_HISTORY:
+        USER_HISTORY[uid] = set()
+    return key in USER_HISTORY[uid]
 
-def remember(user_id, key):
-    USER_HISTORY[user_id].add(key)
+def remember(uid, key):
+    USER_HISTORY[uid].add(key)
 
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
@@ -43,49 +43,74 @@ CATEGORIES = {
     "nakba": "🕊️ النكبة وأحداثها"
 }
 
-# ================= OPENINGS =================
+# ================= OPENING WORD CONTROL =================
 OPENINGS = {
     "maps": [
         "This is a historical map of Palestine before 1948",
-        "This historical map documents Palestine prior to 1948",
-        "A historical map showing Palestine before 1948"
+        "A documented historical map of Palestine prior to 1948",
+        "This historical map records Palestine as it existed before 1948"
     ],
     "palestine": [
-        "Palestine exists as a living identity",
-        "Palestine remains present through memory",
-        "Palestine lives beyond time and headlines"
+        "Palestine exists as a continuous identity",
+        "Palestine lives beyond time and narration",
+        "Palestine remains present through memory and place"
     ],
     "gaza": [
-        "Gaza represents continuous Palestinian presence",
-        "Gaza reflects daily Palestinian life",
-        "Gaza carries Palestinian memory forward"
+        "Gaza represents daily Palestinian presence",
+        "Gaza carries Palestinian identity forward",
+        "Gaza reflects lived Palestinian reality"
     ],
     "memory": [
-        "Palestinian memory carries identity forward",
-        "This memory moves quietly through generations",
-        "History lives without asking permission"
+        "Palestinian memory moves quietly through generations",
+        "Memory preserves Palestinian identity without interruption",
+        "This memory carries Palestine forward"
     ],
     "nakba": [
         "The Nakba reshaped Palestinian daily life",
-        "The Nakba marked a turning point in history",
-        "That historical moment altered lives forever"
+        "The Nakba marked a historical turning point",
+        "That moment in history altered Palestinian lives"
     ]
 }
 
-# ================= DEVELOPMENT LAYERS =================
-MIDDLES = [
-    "not as a claim, but as a fact",
-    "through names, places, and remembrance",
-    "without explanation or justification",
-    "beyond narratives and timelines"
-]
-
-ENDINGS = [
-    "remaining undeniably Palestinian",
-    "rooted deeply in Palestinian identity",
-    "connected to Palestine without interruption",
-    "preserved as Palestinian memory"
-]
+# ================= MOOD PRESETS =================
+MOODS = {
+    "🧠 هادئ توثيقي": {
+        "middles": [
+            "documented carefully without commentary",
+            "recorded through names, places, and memory",
+            "preserved without noise or exaggeration"
+        ],
+        "endings": [
+            "as part of Palestinian historical continuity",
+            "within Palestinian collective memory",
+            "as a documented Palestinian reality"
+        ]
+    },
+    "⚡ مكثف عميق": {
+        "middles": [
+            "beyond headlines and explanations",
+            "without needing validation",
+            "outside imposed narratives"
+        ],
+        "endings": [
+            "remaining undeniably Palestinian",
+            "rooted deeply in Palestinian identity",
+            "connected permanently to Palestine"
+        ]
+    },
+    "✨ تأملي إنساني": {
+        "middles": [
+            "through quiet remembrance",
+            "through lived experience",
+            "through memory carried forward"
+        ],
+        "endings": [
+            "held gently within Palestinian memory",
+            "remembered without permission",
+            "kept alive through identity"
+        ]
+    }
+}
 
 # ================= HASHTAGS =================
 HASHTAGS = {
@@ -96,27 +121,27 @@ HASHTAGS = {
     "nakba": "#Nakba #PalestinianMemory #Hatshepsut"
 }
 
-# ================= HOOK ENGINE (WITH VARIATION LOCK) =================
-def generate_hook(user_id, category):
+# ================= HOOK ENGINE =================
+def generate_hook(uid, category, mood):
     for _ in range(40):
-        o = random.choice(OPENINGS[category])
-        m = random.choice(MIDDLES)
-        e = random.choice(ENDINGS)
+        opening = random.choice(OPENINGS[category])
+        middle = random.choice(MOODS[mood]["middles"])
+        ending = random.choice(MOODS[mood]["endings"])
         emoji = random.choice(EMOJIS)
 
-        variation_key = f"{category}|{o}|{m}|{e}"
-        if seen_before(user_id, variation_key):
+        key = f"{category}|{mood}|{opening}|{middle}|{ending}"
+        if seen_before(uid, key):
             continue
 
         text = (
-            f"{o},\n"
-            f"{m},\n"
-            f"{e}. {emoji}\n\n"
+            f"{opening},\n"
+            f"{middle},\n"
+            f"{ending}. {emoji}\n\n"
             f"{HASHTAGS[category]}"
         )
 
         if safe(text):
-            remember(user_id, variation_key)
+            remember(uid, key)
             return f"<code>{text}</code>"
 
     return "<code>No new safe formulation could be generated.</code>"
@@ -128,10 +153,16 @@ def categories_kb():
         kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
-def again_kb(category):
+def mood_kb(category):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for m in MOODS.keys():
+        kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
+    return kb
+
+def again_kb(category, mood):
     kb = InlineKeyboardMarkup()
     kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}")
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}")
     )
     return kb
 
@@ -147,26 +178,33 @@ def start(m):
 @bot.callback_query_handler(func=lambda c: True)
 def handle(c):
     data = c.data.split("|")
-    user_id = c.from_user.id
+    uid = c.from_user.id
 
     if data[0] == "cat":
-        category = data[1]
-        text = generate_hook(user_id, category)
+        bot.send_message(
+            c.message.chat.id,
+            "🎭 اختار النبرة:",
+            reply_markup=mood_kb(data[1])
+        )
+
+    elif data[0] == "mood":
+        _, category, mood = data
+        text = generate_hook(uid, category, mood)
         bot.send_message(
             c.message.chat.id,
             text,
-            reply_markup=again_kb(category)
+            reply_markup=again_kb(category, mood)
         )
 
     elif data[0] == "again":
-        category = data[1]
-        text = generate_hook(user_id, category)
+        _, category, mood = data
+        text = generate_hook(uid, category, mood)
         bot.send_message(
             c.message.chat.id,
             text,
-            reply_markup=again_kb(category)
+            reply_markup=again_kb(category, mood)
         )
 
 # ================= RUN =================
-print("🇵🇸 Smart Palestinian Hook Engine running safely...")
+print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
