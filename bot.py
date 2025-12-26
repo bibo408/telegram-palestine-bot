@@ -1,3 +1,4 @@
+```python
 # -*- coding: utf-8 -*-
 
 import telebot
@@ -48,6 +49,17 @@ def seen_before(uid, key):
 
 def remember(uid, key):
     USER_HISTORY[uid].add(key)
+
+# ================= USER PREFERENCES =================
+USER_PREFS = {}
+
+def get_prefs(uid):
+    if uid not in USER_PREFS:
+        USER_PREFS[uid] = {
+            "typography": "mono",
+            "randomness": "balanced"
+        }
+    return USER_PREFS[uid]
 
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
@@ -152,12 +164,36 @@ def anti_flatness(opening, middle, ending):
         return False
     return True
 
+# ================= TYPOGRAPHY MODES =================
+TYPOGRAPHY_MODES = {
+    "mono": lambda t: f"<code>{t}</code>",
+    "boxed": lambda t: f"<pre>{t}</pre>",
+    "clean": lambda t: t
+}
+
+def apply_typography(text, mode):
+    return TYPOGRAPHY_MODES.get(mode, TYPOGRAPHY_MODES["mono"])(text)
+
+# ================= CONTROLLED RANDOMNESS =================
+RANDOMNESS_LEVELS = {
+    "low": 0.2,
+    "balanced": 0.5,
+    "high": 0.8
+}
+
+def controlled_choice(items, level):
+    r = RANDOMNESS_LEVELS.get(level, 0.5)
+    if random.random() > r:
+        return items[0]
+    return random.choice(items)
+
 # ================= HOOK ENGINE =================
 def generate_hook(uid, category, mood):
-    for _ in range(60):
-        opening = random.choice(OPENINGS[category])
-        middle = random.choice(MOODS[mood]["middles"])
-        ending = random.choice(MOODS[mood]["endings"])
+    prefs = get_prefs(uid)
+    for _ in range(80):
+        opening = controlled_choice(OPENINGS[category], prefs["randomness"])
+        middle = controlled_choice(MOODS[mood]["middles"], prefs["randomness"])
+        ending = controlled_choice(MOODS[mood]["endings"], prefs["randomness"])
         emoji = random.choice(EMOJIS)
 
         if not anti_flatness(opening, middle, ending):
@@ -167,18 +203,18 @@ def generate_hook(uid, category, mood):
         if seen_before(uid, key):
             continue
 
-        text = (
+        raw = (
             f"{opening},\n"
             f"{middle},\n"
             f"{ending}. {emoji}\n\n"
             f"{HASHTAGS[category]}"
         )
 
-        if safe(text) and semantic_safe(text):
+        if safe(raw) and semantic_safe(raw):
             remember(uid, key)
-            return f"<code>{text}</code>"
+            return apply_typography(raw, prefs["typography"])
 
-    return "<code>No new safe formulation could be generated.</code>"
+    return apply_typography("No new safe formulation could be generated.", prefs["typography"])
 
 # ================= KEYBOARDS =================
 def categories_kb():
@@ -194,9 +230,13 @@ def mood_kb(category):
     return kb
 
 def again_kb(category, mood):
-    kb = InlineKeyboardMarkup()
+    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}")
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}"),
+        InlineKeyboardButton("📋 Copy", callback_data="copy")
+    )
+    kb.add(
+        InlineKeyboardButton("🅣 Typography", callback_data="typography")
     )
     return kb
 
@@ -213,6 +253,7 @@ def start(m):
 def handle(c):
     data = c.data.split("|")
     uid = c.from_user.id
+    prefs = get_prefs(uid)
 
     if data[0] == "cat":
         bot.send_message(
@@ -239,6 +280,15 @@ def handle(c):
             reply_markup=again_kb(category, mood)
         )
 
+    elif data[0] == "typography":
+        modes = list(TYPOGRAPHY_MODES.keys())
+        prefs["typography"] = modes[(modes.index(prefs["typography"]) + 1) % len(modes)]
+        bot.answer_callback_query(c.id, f"Typography: {prefs['typography']}")
+
+    elif data[0] == "copy":
+        bot.answer_callback_query(c.id, "Copied ✔️", show_alert=True)
+
 # ================= RUN =================
 print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
+```
