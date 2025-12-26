@@ -4,12 +4,12 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
-import re
+import math
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-# ================= HARD BLOCKED WORDS =================
+# ================= BLOCKED WORDS =================
 BLOCKED = [
     "conflict","violence","violent","resistance","occupation",
     "zion","zionist","jewish","israel","israeli",
@@ -17,34 +17,37 @@ BLOCKED = [
     "fraud","scam"
 ]
 
+def safe(text):
+    t = text.lower()
+    return not any(w in t for w in BLOCKED)
+
 # ================= SEMANTIC AVOIDANCE ENGINE =================
-SEMANTIC_BLOCKS = [
-    ["force","forced","forcibly","imposed"],
-    ["erased","erase","erasing","wipe"],
-    ["removed","removal","displaced"],
-    ["military","armed","weapon"],
-    ["dominated","control","seized"],
-    ["suffer","pain","tragedy","catastrophe"]
-]
+SEMANTIC_BLACKLIST = {
+    "war": ["battle","fight","combat","clash"],
+    "military": ["armed","forces","troops"],
+    "destruction": ["ruin","devastation","wreckage"],
+}
 
 def semantic_safe(text):
     t = text.lower()
-    for cluster in SEMANTIC_BLOCKS:
-        for word in cluster:
-            if word in t:
+    for root, variants in SEMANTIC_BLACKLIST.items():
+        if root in t:
+            return False
+        for v in variants:
+            if v in t:
                 return False
     return True
 
-# ================= USER VARIATION MEMORY =================
+# ================= USER VARIATION LOCK =================
 USER_HISTORY = {}
 
-def seen_before(user_id, key):
-    if user_id not in USER_HISTORY:
-        USER_HISTORY[user_id] = set()
-    return key in USER_HISTORY[user_id]
+def seen_before(uid, key):
+    if uid not in USER_HISTORY:
+        USER_HISTORY[uid] = set()
+    return key in USER_HISTORY[uid]
 
-def remember(user_id, key):
-    USER_HISTORY[user_id].add(key)
+def remember(uid, key):
+    USER_HISTORY[uid].add(key)
 
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
@@ -58,49 +61,74 @@ CATEGORIES = {
     "nakba": "🕊️ النكبة وأحداثها"
 }
 
-# ================= OPENINGS =================
+# ================= OPENING WORD CONTROL =================
 OPENINGS = {
     "maps": [
         "This is a historical map of Palestine before 1948",
-        "This historical map documents Palestine prior to 1948",
-        "A historical map showing Palestine before 1948"
+        "A documented historical map of Palestine prior to 1948",
+        "This historical map records Palestine as it existed before 1948"
     ],
     "palestine": [
-        "Palestine exists as a living identity",
-        "Palestine remains present through memory",
-        "Palestine lives beyond time and headlines"
+        "Palestine exists as a continuous identity",
+        "Palestine lives beyond time and narration",
+        "Palestine remains present through memory and place"
     ],
     "gaza": [
-        "Gaza represents continuous Palestinian presence",
-        "Gaza reflects daily Palestinian life",
-        "Gaza carries Palestinian memory forward"
+        "Gaza represents daily Palestinian presence",
+        "Gaza carries Palestinian identity forward",
+        "Gaza reflects lived Palestinian reality"
     ],
     "memory": [
-        "Palestinian memory carries identity forward",
-        "This memory moves quietly through generations",
-        "History lives without asking permission"
+        "Palestinian memory moves quietly through generations",
+        "Memory preserves Palestinian identity without interruption",
+        "This memory carries Palestine forward"
     ],
     "nakba": [
         "The Nakba reshaped Palestinian daily life",
-        "The Nakba marked a turning point in history",
-        "That historical moment altered lives forever"
+        "The Nakba marked a historical turning point",
+        "That moment in history altered Palestinian lives"
     ]
 }
 
-# ================= DEVELOPMENT LAYERS =================
-MIDDLES = [
-    "not as a claim, but as a recorded reality",
-    "through names, places, and remembrance",
-    "without explanation or justification",
-    "beyond timelines and political framing"
-]
-
-ENDINGS = [
-    "remaining undeniably Palestinian",
-    "rooted deeply in Palestinian identity",
-    "connected to Palestine without interruption",
-    "preserved as Palestinian historical memory"
-]
+# ================= MOOD PRESETS =================
+MOODS = {
+    "🧠 هادئ توثيقي": {
+        "middles": [
+            "documented carefully without commentary",
+            "recorded through names, places, and memory",
+            "preserved without noise or exaggeration"
+        ],
+        "endings": [
+            "as part of Palestinian historical continuity",
+            "within Palestinian collective memory",
+            "as a documented Palestinian reality"
+        ]
+    },
+    "⚡ مكثف عميق": {
+        "middles": [
+            "beyond headlines and explanations",
+            "without needing validation",
+            "outside imposed narratives"
+        ],
+        "endings": [
+            "remaining undeniably Palestinian",
+            "rooted deeply in Palestinian identity",
+            "connected permanently to Palestine"
+        ]
+    },
+    "✨ تأملي إنساني": {
+        "middles": [
+            "through quiet remembrance",
+            "through lived experience",
+            "through memory carried forward"
+        ],
+        "endings": [
+            "held gently within Palestinian memory",
+            "remembered without permission",
+            "kept alive through identity"
+        ]
+    }
+}
 
 # ================= HASHTAGS =================
 HASHTAGS = {
@@ -112,53 +140,45 @@ HASHTAGS = {
 }
 
 # ================= ANTI-FLATNESS DETECTOR =================
-def is_flat(text):
-    words = re.findall(r"\w+", text.lower())
-
-    if len(words) < 12:
-        return True
-
-    identity_terms = ["palestine","palestinian","gaza","nakba"]
-    if not any(w in words for w in identity_terms):
-        return True
-
-    depth_terms = ["memory","identity","history","map","historical"]
-    if not any(w in words for w in depth_terms):
-        return True
-
-    return False
+def anti_flatness(opening, middle, ending):
+    lens = [len(opening.split()), len(middle.split()), len(ending.split())]
+    mean = sum(lens) / 3.0
+    variance = sum((l - mean) ** 2 for l in lens) / 3.0
+    if variance < 2.0:
+        return False
+    if opening.split()[0].lower() in middle.lower():
+        return False
+    if ending.split()[0].lower() in middle.lower():
+        return False
+    return True
 
 # ================= HOOK ENGINE =================
-def generate_hook(user_id, category):
+def generate_hook(uid, category, mood):
     for _ in range(60):
-        o = random.choice(OPENINGS[category])
-        m = random.choice(MIDDLES)
-        e = random.choice(ENDINGS)
+        opening = random.choice(OPENINGS[category])
+        middle = random.choice(MOODS[mood]["middles"])
+        ending = random.choice(MOODS[mood]["endings"])
         emoji = random.choice(EMOJIS)
 
-        variation_key = f"{category}|{o}|{m}|{e}"
-        if seen_before(user_id, variation_key):
+        if not anti_flatness(opening, middle, ending):
             continue
 
-        text_body = (
-            f"{o},\n"
-            f"{m},\n"
-            f"{e}. {emoji}"
+        key = f"{category}|{mood}|{opening}|{middle}|{ending}"
+        if seen_before(uid, key):
+            continue
+
+        text = (
+            f"{opening},\n"
+            f"{middle},\n"
+            f"{ending}. {emoji}\n\n"
+            f"{HASHTAGS[category]}"
         )
 
-        full_text = f"{text_body}\n\n{HASHTAGS[category]}"
+        if safe(text) and semantic_safe(text):
+            remember(uid, key)
+            return f"<code>{text}</code>"
 
-        if not semantic_safe(full_text):
-            continue
-        if not all(w not in full_text.lower() for w in BLOCKED):
-            continue
-        if is_flat(full_text):
-            continue
-
-        remember(user_id, variation_key)
-        return f"<code>{full_text}</code>"
-
-    return "<code>No new high-quality formulation could be generated.</code>"
+    return "<code>No new safe formulation could be generated.</code>"
 
 # ================= KEYBOARDS =================
 def categories_kb():
@@ -167,10 +187,16 @@ def categories_kb():
         kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
-def again_kb(category):
+def mood_kb(category):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for m in MOODS.keys():
+        kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
+    return kb
+
+def again_kb(category, mood):
     kb = InlineKeyboardMarkup()
     kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}")
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}")
     )
     return kb
 
@@ -186,26 +212,33 @@ def start(m):
 @bot.callback_query_handler(func=lambda c: True)
 def handle(c):
     data = c.data.split("|")
-    user_id = c.from_user.id
+    uid = c.from_user.id
 
     if data[0] == "cat":
-        category = data[1]
-        text = generate_hook(user_id, category)
+        bot.send_message(
+            c.message.chat.id,
+            "🎭 اختار النبرة:",
+            reply_markup=mood_kb(data[1])
+        )
+
+    elif data[0] == "mood":
+        _, category, mood = data
+        text = generate_hook(uid, category, mood)
         bot.send_message(
             c.message.chat.id,
             text,
-            reply_markup=again_kb(category)
+            reply_markup=again_kb(category, mood)
         )
 
     elif data[0] == "again":
-        category = data[1]
-        text = generate_hook(user_id, category)
+        _, category, mood = data
+        text = generate_hook(uid, category, mood)
         bot.send_message(
             c.message.chat.id,
             text,
-            reply_markup=again_kb(category)
+            reply_markup=again_kb(category, mood)
         )
 
 # ================= RUN =================
-print("🇵🇸 Advanced Semantic Hook Engine running...")
+print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
