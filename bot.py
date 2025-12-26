@@ -20,6 +20,17 @@ def safe(text):
     t = text.lower()
     return not any(w in t for w in BLOCKED)
 
+# ================= USER VARIATION MEMORY =================
+USER_HISTORY = {}
+
+def seen_before(user_id, key):
+    if user_id not in USER_HISTORY:
+        USER_HISTORY[user_id] = set()
+    return key in USER_HISTORY[user_id]
+
+def remember(user_id, key):
+    USER_HISTORY[user_id].add(key)
+
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
 
@@ -32,32 +43,32 @@ CATEGORIES = {
     "nakba": "🕊️ النكبة وأحداثها"
 }
 
-# ================= OPENINGS (SMART) =================
+# ================= OPENINGS =================
 OPENINGS = {
     "maps": [
         "This is a historical map of Palestine before 1948",
-        "This historical map shows Palestine prior to 1948",
-        "A historical map documenting Palestine before 1948"
+        "This historical map documents Palestine prior to 1948",
+        "A historical map showing Palestine before 1948"
     ],
     "palestine": [
-        "Palestine has always existed as a living identity",
-        "Palestine remains present beyond time",
-        "Palestine lives through memory and place"
+        "Palestine exists as a living identity",
+        "Palestine remains present through memory",
+        "Palestine lives beyond time and headlines"
     ],
     "gaza": [
-        "Gaza represents a continuous Palestinian presence",
+        "Gaza represents continuous Palestinian presence",
         "Gaza reflects daily Palestinian life",
-        "Gaza holds stories shaped by time"
+        "Gaza carries Palestinian memory forward"
     ],
     "memory": [
         "Palestinian memory carries identity forward",
-        "This memory passes quietly through generations",
-        "This history lives without needing permission"
+        "This memory moves quietly through generations",
+        "History lives without asking permission"
     ],
     "nakba": [
         "The Nakba reshaped Palestinian daily life",
         "The Nakba marked a turning point in history",
-        "That moment in history changed lives forever"
+        "That historical moment altered lives forever"
     ]
 }
 
@@ -65,14 +76,14 @@ OPENINGS = {
 MIDDLES = [
     "not as a claim, but as a fact",
     "through names, places, and remembrance",
-    "without needing explanation",
+    "without explanation or justification",
     "beyond narratives and timelines"
 ]
 
 ENDINGS = [
     "remaining undeniably Palestinian",
-    "rooted in Palestinian identity",
-    "connected to Palestine forever",
+    "rooted deeply in Palestinian identity",
+    "connected to Palestine without interruption",
     "preserved as Palestinian memory"
 ]
 
@@ -81,17 +92,21 @@ HASHTAGS = {
     "palestine": "#Palestine #PalestinianIdentity #Hatshepsut",
     "gaza": "#Gaza #PalestinianMemory #Hatshepsut",
     "maps": "#HistoricalMap #Palestine #Hatshepsut",
-    "memory": "#Memory #PalestinianHistory #Hatshepsut",
+    "memory": "#PalestinianMemory #History #Hatshepsut",
     "nakba": "#Nakba #PalestinianMemory #Hatshepsut"
 }
 
-# ================= HOOK ENGINE =================
-def generate_hook(category):
-    for _ in range(20):
+# ================= HOOK ENGINE (WITH VARIATION LOCK) =================
+def generate_hook(user_id, category):
+    for _ in range(40):
         o = random.choice(OPENINGS[category])
         m = random.choice(MIDDLES)
         e = random.choice(ENDINGS)
         emoji = random.choice(EMOJIS)
+
+        variation_key = f"{category}|{o}|{m}|{e}"
+        if seen_before(user_id, variation_key):
+            continue
 
         text = (
             f"{o},\n"
@@ -101,9 +116,10 @@ def generate_hook(category):
         )
 
         if safe(text):
+            remember(user_id, variation_key)
             return f"<code>{text}</code>"
 
-    return "<code>Could not generate safe content.</code>"
+    return "<code>No new safe formulation could be generated.</code>"
 
 # ================= KEYBOARDS =================
 def categories_kb():
@@ -131,10 +147,11 @@ def start(m):
 @bot.callback_query_handler(func=lambda c: True)
 def handle(c):
     data = c.data.split("|")
+    user_id = c.from_user.id
 
     if data[0] == "cat":
         category = data[1]
-        text = generate_hook(category)
+        text = generate_hook(user_id, category)
         bot.send_message(
             c.message.chat.id,
             text,
@@ -143,7 +160,7 @@ def handle(c):
 
     elif data[0] == "again":
         category = data[1]
-        text = generate_hook(category)
+        text = generate_hook(user_id, category)
         bot.send_message(
             c.message.chat.id,
             text,
@@ -151,5 +168,5 @@ def handle(c):
         )
 
 # ================= RUN =================
-print("🇵🇸 Smart Palestinian Hook Engine running...")
+print("🇵🇸 Smart Palestinian Hook Engine running safely...")
 bot.infinity_polling(skip_pending=True)
