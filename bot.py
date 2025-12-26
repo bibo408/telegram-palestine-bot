@@ -1,11 +1,9 @@
-```python
 # -*- coding: utf-8 -*-
 
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
-import math
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
@@ -233,10 +231,10 @@ def again_kb(category, mood):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}"),
-        InlineKeyboardButton("📋 Copy", callback_data="copy")
+        InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
     )
     kb.add(
-        InlineKeyboardButton("🅣 Typography", callback_data="typography")
+        InlineKeyboardButton("🅣 Typography", callback_data=f"typography|{category}|{mood}")
     )
     return kb
 
@@ -281,9 +279,10 @@ def handle(c):
         )
 
     elif data[0] == "typography":
+        _, category, mood = data
         modes = list(TYPOGRAPHY_MODES.keys())
         prefs["typography"] = modes[(modes.index(prefs["typography"]) + 1) % len(modes)]
-        bot.answer_callback_query(c.id, f"Typography: {prefs['typography']}")
+        bot.answer_callback_query(c.id, f"Typography: {prefs['typography']} ✔️")
 
     elif data[0] == "copy":
         bot.answer_callback_query(c.id, "Copied ✔️", show_alert=True)
@@ -291,4 +290,3 @@ def handle(c):
 # ================= RUN =================
 print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
-```
