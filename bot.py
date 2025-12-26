@@ -189,9 +189,9 @@ def expand_with_gpt5(prompt):
     try:
         response = openai.chat.completions.create(
             model="gpt-5-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": f"Expand this text into a longer, richer paragraph: {prompt}"}],
             temperature=0.7,
-            max_tokens=150
+            max_tokens=200
         )
         return response.choices[0].message["content"].strip()
     except Exception as e:
@@ -217,3 +217,89 @@ def generate_hook(uid, category, mood):
             f"{opening},\n"
             f"{middle},\n"
             f"{ending}. {emoji}\n\n"
+            f"{HASHTAGS[category]}"
+        )
+
+        if safe(raw) and semantic_safe(raw):
+            remember(uid, key)
+            expanded = expand_with_gpt5(raw)
+            return apply_typography(expanded, prefs["typography"])
+
+    return apply_typography("No new safe formulation could be generated.", prefs["typography"])
+
+# ================= KEYBOARDS =================
+def categories_kb():
+    kb = InlineKeyboardMarkup(row_width=2)
+    for k,v in CATEGORIES.items():
+        kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
+    return kb
+
+def mood_kb(category):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for m in MOODS.keys():
+        kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
+    return kb
+
+def again_kb(category, mood):
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}"),
+        InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
+    )
+    kb.add(
+        InlineKeyboardButton("🅣 Typography", callback_data=f"typography|{category}|{mood}")
+    )
+    return kb
+
+# ================= HANDLERS =================
+@bot.message_handler(commands=["start"])
+def start(m):
+    bot.send_message(
+        m.chat.id,
+        "🇵🇸 اختار القسم:",
+        reply_markup=categories_kb()
+    )
+
+@bot.callback_query_handler(func=lambda c: True)
+def handle(c):
+    data = c.data.split("|")
+    uid = c.from_user.id
+    prefs = get_prefs(uid)
+
+    if data[0] == "cat":
+        bot.send_message(
+            c.message.chat.id,
+            "🎭 اختار النبرة:",
+            reply_markup=mood_kb(data[1])
+        )
+
+    elif data[0] == "mood":
+        _, category, mood = data
+        text = generate_hook(uid, category, mood)
+        bot.send_message(
+            c.message.chat.id,
+            text,
+            reply_markup=again_kb(category, mood)
+        )
+
+    elif data[0] == "again":
+        _, category, mood = data
+        text = generate_hook(uid, category, mood)
+        bot.send_message(
+            c.message.chat.id,
+            text,
+            reply_markup=again_kb(category, mood)
+        )
+
+    elif data[0] == "typography":
+        _, category, mood = data
+        modes = list(TYPOGRAPHY_MODES.keys())
+        prefs["typography"] = modes[(modes.index(prefs["typography"]) + 1) % len(modes)]
+        bot.answer_callback_query(c.id, f"Typography: {prefs['typography']} ✔️")
+
+    elif data[0] == "copy":
+        bot.answer_callback_query(c.id, "Copied ✔️", show_alert=True)
+
+# ================= RUN =================
+print("🇵🇸 Advanced Palestinian GPT-5 Hook Engine running...")
+bot.infinity_polling(skip_pending=True)
