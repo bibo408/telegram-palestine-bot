@@ -4,9 +4,13 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
+import openai
 
+# ================= CONFIG =================
 TOKEN = os.getenv("BOT_TOKEN")
+OPENAI_KEY = os.getenv("OPENAI_KEY")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
+openai.api_key = OPENAI_KEY
 
 # ================= BLOCKED WORDS =================
 BLOCKED = [
@@ -20,48 +24,6 @@ def safe(text):
     t = text.lower()
     return not any(w in t for w in BLOCKED)
 
-# ================= SEMANTIC AVOIDANCE ENGINE =================
-SEMANTIC_BLACKLIST = {
-    "war": ["battle","fight","combat","clash"],
-    "military": ["armed","forces","troops"],
-    "destruction": ["ruin","devastation","wreckage"],
-}
-
-def semantic_safe(text):
-    t = text.lower()
-    for root, variants in SEMANTIC_BLACKLIST.items():
-        if root in t:
-            return False
-        for v in variants:
-            if v in t:
-                return False
-    return True
-
-# ================= USER VARIATION LOCK =================
-USER_HISTORY = {}
-
-def seen_before(uid, key):
-    if uid not in USER_HISTORY:
-        USER_HISTORY[uid] = set()
-    return key in USER_HISTORY[uid]
-
-def remember(uid, key):
-    USER_HISTORY[uid].add(key)
-
-# ================= USER PREFERENCES =================
-USER_PREFS = {}
-
-def get_prefs(uid):
-    if uid not in USER_PREFS:
-        USER_PREFS[uid] = {
-            "typography": "mono",
-            "randomness": "balanced"
-        }
-    return USER_PREFS[uid]
-
-# ================= EMOJIS =================
-EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
-
 # ================= CATEGORIES =================
 CATEGORIES = {
     "palestine": "🇵🇸 فلسطين",
@@ -71,170 +33,69 @@ CATEGORIES = {
     "nakba": "🕊️ النكبة وأحداثها"
 }
 
-# ================= OPENING WORD CONTROL =================
-OPENINGS = {
-    "maps": [
-        "This is a historical map of Palestine before 1948",
-        "A documented historical map of Palestine prior to 1948",
-        "This historical map records Palestine as it existed before 1948"
-    ],
-    "palestine": [
-        "Palestine exists as a continuous identity",
-        "Palestine lives beyond time and narration",
-        "Palestine remains present through memory and place"
-    ],
-    "gaza": [
-        "Gaza represents daily Palestinian presence",
-        "Gaza carries Palestinian identity forward",
-        "Gaza reflects lived Palestinian reality"
-    ],
-    "memory": [
-        "Palestinian memory moves quietly through generations",
-        "Memory preserves Palestinian identity without interruption",
-        "This memory carries Palestine forward"
-    ],
-    "nakba": [
-        "The Nakba reshaped Palestinian daily life",
-        "The Nakba marked a historical turning point",
-        "That moment in history altered Palestinian lives"
-    ]
-}
+# ================= MOODS =================
+MOODS = ["🧠 هادئ توثيقي", "⚡ مكثف عميق", "✨ تأملي إنساني"]
 
-# ================= MOOD PRESETS =================
-MOODS = {
-    "🧠 هادئ توثيقي": {
-        "middles": [
-            "documented carefully without commentary",
-            "recorded through names, places, and memory",
-            "preserved without noise or exaggeration"
-        ],
-        "endings": [
-            "as part of Palestinian historical continuity",
-            "within Palestinian collective memory",
-            "as a documented Palestinian reality"
-        ]
-    },
-    "⚡ مكثف عميق": {
-        "middles": [
-            "beyond headlines and explanations",
-            "without needing validation",
-            "outside imposed narratives"
-        ],
-        "endings": [
-            "remaining undeniably Palestinian",
-            "rooted deeply in Palestinian identity",
-            "connected permanently to Palestine"
-        ]
-    },
-    "✨ تأملي إنساني": {
-        "middles": [
-            "through quiet remembrance",
-            "through lived experience",
-            "through memory carried forward"
-        ],
-        "endings": [
-            "held gently within Palestinian memory",
-            "remembered without permission",
-            "kept alive through identity"
-        ]
-    }
-}
+# ================= USER HISTORY =================
+USER_HISTORY = {}
 
-# ================= HASHTAGS =================
-HASHTAGS = {
-    "palestine": "#Palestine #PalestinianIdentity #Hatshepsut",
-    "gaza": "#Gaza #PalestinianMemory #Hatshepsut",
-    "maps": "#HistoricalMap #Palestine #Hatshepsut",
-    "memory": "#PalestinianMemory #History #Hatshepsut",
-    "nakba": "#Nakba #PalestinianMemory #Hatshepsut"
-}
+def seen_before(uid, text):
+    if uid not in USER_HISTORY:
+        USER_HISTORY[uid] = set()
+    return text in USER_HISTORY[uid]
 
-# ================= ANTI-FLATNESS DETECTOR =================
-def anti_flatness(opening, middle, ending):
-    lens = [len(opening.split()), len(middle.split()), len(ending.split())]
-    mean = sum(lens) / 3.0
-    variance = sum((l - mean) ** 2 for l in lens) / 3.0
-    if variance < 2.0:
-        return False
-    if opening.split()[0].lower() in middle.lower():
-        return False
-    if ending.split()[0].lower() in middle.lower():
-        return False
-    return True
+def remember(uid, text):
+    USER_HISTORY[uid].add(text)
 
-# ================= TYPOGRAPHY MODES =================
-TYPOGRAPHY_MODES = {
-    "mono": lambda t: f"<code>{t}</code>",
-    "boxed": lambda t: f"<pre>{t}</pre>",
-    "clean": lambda t: t
-}
+# ================= GPT-5 HOOK GENERATOR =================
+def generate_hook_gpt(uid, category, mood):
+    prompt = f"""
+Generate a unique Palestinian hook sentence in English for social media.
+Requirements:
+1. Must reflect Palestinian identity clearly (mention Palestine, Gaza, Nakba, or related themes).
+2. Mood: {mood}.
+3. Keep it in 2-3 lines max.
+4. Add 1-2 relevant emojis subtly.
+5. Avoid any violent or forbidden words.
+6. Make it original and not repetitive.
+7. End with appropriate hashtags (#Palestine #PalestinianIdentity #Memory).
 
-def apply_typography(text, mode):
-    return TYPOGRAPHY_MODES.get(mode, TYPOGRAPHY_MODES["mono"])(text)
-
-# ================= CONTROLLED RANDOMNESS =================
-RANDOMNESS_LEVELS = {
-    "low": 0.2,
-    "balanced": 0.5,
-    "high": 0.8
-}
-
-def controlled_choice(items, level):
-    r = RANDOMNESS_LEVELS.get(level, 0.5)
-    if random.random() > r:
-        return items[0]
-    return random.choice(items)
-
-# ================= HOOK ENGINE =================
-def generate_hook(uid, category, mood):
-    prefs = get_prefs(uid)
-    for _ in range(80):
-        opening = controlled_choice(OPENINGS[category], prefs["randomness"])
-        middle = controlled_choice(MOODS[mood]["middles"], prefs["randomness"])
-        ending = controlled_choice(MOODS[mood]["endings"], prefs["randomness"])
-        emoji = random.choice(EMOJIS)
-
-        if not anti_flatness(opening, middle, ending):
-            continue
-
-        key = f"{category}|{mood}|{opening}|{middle}|{ending}"
-        if seen_before(uid, key):
-            continue
-
-        raw = (
-            f"{opening},\n"
-            f"{middle},\n"
-            f"{ending}. {emoji}\n\n"
-            f"{HASHTAGS[category]}"
+Output only the text, do not add extra instructions.
+"""
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-5-mini",
+            messages=[{"role":"user","content":prompt}],
+            temperature=0.7,
+            max_tokens=150
         )
-
-        if safe(raw) and semantic_safe(raw):
-            remember(uid, key)
-            return apply_typography(raw, prefs["typography"])
-
-    return apply_typography("No new safe formulation could be generated.", prefs["typography"])
+        text = response['choices'][0]['message']['content'].strip()
+        if safe(text) and not seen_before(uid, text):
+            remember(uid, text)
+            return f"<code>{text}</code>"
+        else:
+            return "<code>Could not generate a safe unique hook.</code>"
+    except Exception as e:
+        return f"<code>Error generating hook: {e}</code>"
 
 # ================= KEYBOARDS =================
 def categories_kb():
     kb = InlineKeyboardMarkup(row_width=2)
-    for k,v in CATEGORIES.items():
+    for k, v in CATEGORIES.items():
         kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
 def mood_kb(category):
     kb = InlineKeyboardMarkup(row_width=1)
-    for m in MOODS.keys():
+    for m in MOODS:
         kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
     return kb
 
 def again_kb(category, mood):
-    kb = InlineKeyboardMarkup(row_width=2)
+    kb = InlineKeyboardMarkup()
     kb.add(
         InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}"),
         InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
-    )
-    kb.add(
-        InlineKeyboardButton("🅣 Typography", callback_data=f"typography|{category}|{mood}")
     )
     return kb
 
@@ -251,7 +112,6 @@ def start(m):
 def handle(c):
     data = c.data.split("|")
     uid = c.from_user.id
-    prefs = get_prefs(uid)
 
     if data[0] == "cat":
         bot.send_message(
@@ -262,7 +122,7 @@ def handle(c):
 
     elif data[0] == "mood":
         _, category, mood = data
-        text = generate_hook(uid, category, mood)
+        text = generate_hook_gpt(uid, category, mood)
         bot.send_message(
             c.message.chat.id,
             text,
@@ -271,22 +131,16 @@ def handle(c):
 
     elif data[0] == "again":
         _, category, mood = data
-        text = generate_hook(uid, category, mood)
+        text = generate_hook_gpt(uid, category, mood)
         bot.send_message(
             c.message.chat.id,
             text,
             reply_markup=again_kb(category, mood)
         )
 
-    elif data[0] == "typography":
-        _, category, mood = data
-        modes = list(TYPOGRAPHY_MODES.keys())
-        prefs["typography"] = modes[(modes.index(prefs["typography"]) + 1) % len(modes)]
-        bot.answer_callback_query(c.id, f"Typography: {prefs['typography']} ✔️")
-
     elif data[0] == "copy":
         bot.answer_callback_query(c.id, "Copied ✔️", show_alert=True)
 
 # ================= RUN =================
-print("🇵🇸 Advanced Palestinian Hook Engine running...")
+print("🇵🇸 GPT-5 Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
