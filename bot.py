@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import os
-import random
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import openai
+import random
+import os
 
-# ================= SETUP =================
-TOKEN = os.getenv("BOT_TOKEN")  # Telegram Bot Token
+TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
-
-openai.api_key = os.getenv("OPENAI_API_KEY")  # OpenAI GPT-5 API Key
 
 # ================= BLOCKED WORDS =================
 BLOCKED = [
@@ -24,7 +20,7 @@ def safe(text):
     t = text.lower()
     return not any(w in t for w in BLOCKED)
 
-# ================= SEMANTIC AVOIDANCE =================
+# ================= SEMANTIC AVOIDANCE ENGINE =================
 SEMANTIC_BLACKLIST = {
     "war": ["battle","fight","combat","clash"],
     "military": ["armed","forces","troops"],
@@ -34,9 +30,11 @@ SEMANTIC_BLACKLIST = {
 def semantic_safe(text):
     t = text.lower()
     for root, variants in SEMANTIC_BLACKLIST.items():
-        if root in t: return False
+        if root in t:
+            return False
         for v in variants:
-            if v in t: return False
+            if v in t:
+                return False
     return True
 
 # ================= USER VARIATION LOCK =================
@@ -156,9 +154,12 @@ def anti_flatness(opening, middle, ending):
     lens = [len(opening.split()), len(middle.split()), len(ending.split())]
     mean = sum(lens) / 3.0
     variance = sum((l - mean) ** 2 for l in lens) / 3.0
-    if variance < 2.0: return False
-    if opening.split()[0].lower() in middle.lower(): return False
-    if ending.split()[0].lower() in middle.lower(): return False
+    if variance < 2.0:
+        return False
+    if opening.split()[0].lower() in middle.lower():
+        return False
+    if ending.split()[0].lower() in middle.lower():
+        return False
     return True
 
 # ================= TYPOGRAPHY MODES =================
@@ -183,19 +184,6 @@ def controlled_choice(items, level):
     if random.random() > r:
         return items[0]
     return random.choice(items)
-
-# ================= GPT-5 TEXT EXPANSION =================
-def expand_with_gpt5(prompt):
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-5-mini",
-            messages=[{"role": "user", "content": f"Expand this text into a longer, richer paragraph: {prompt}"}],
-            temperature=0.7,
-            max_tokens=200
-        )
-        return response.choices[0].message["content"].strip()
-    except Exception as e:
-        return f"Error generating content: {e}"
 
 # ================= HOOK ENGINE =================
 def generate_hook(uid, category, mood):
@@ -222,8 +210,7 @@ def generate_hook(uid, category, mood):
 
         if safe(raw) and semantic_safe(raw):
             remember(uid, key)
-            expanded = expand_with_gpt5(raw)
-            return apply_typography(expanded, prefs["typography"])
+            return apply_typography(raw, prefs["typography"])
 
     return apply_typography("No new safe formulation could be generated.", prefs["typography"])
 
@@ -301,5 +288,5 @@ def handle(c):
         bot.answer_callback_query(c.id, "Copied ✔️", show_alert=True)
 
 # ================= RUN =================
-print("🇵🇸 Advanced Palestinian GPT-5 Hook Engine running...")
+print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
