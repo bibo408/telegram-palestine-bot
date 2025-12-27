@@ -4,6 +4,8 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
+import re
+import time
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
@@ -39,14 +41,17 @@ def semantic_safe(text):
 
 # ================= USER VARIATION LOCK =================
 USER_HISTORY = {}
+USER_PRESS = {}
 
 def seen_before(uid, key):
     if uid not in USER_HISTORY:
-        USER_HISTORY[uid] = set()
+        USER_HISTORY[uid] = []
     return key in USER_HISTORY[uid]
 
 def remember(uid, key):
-    USER_HISTORY[uid].add(key)
+    USER_HISTORY.setdefault(uid, []).append(key)
+    if len(USER_HISTORY[uid]) > 200:
+        USER_HISTORY[uid] = USER_HISTORY[uid][-200:]
 
 # ================= USER PREFERENCES =================
 USER_PREFS = {}
@@ -55,9 +60,38 @@ def get_prefs(uid):
     if uid not in USER_PREFS:
         USER_PREFS[uid] = {
             "typography": "mono",
-            "randomness": "balanced"
+            "randomness": 0.4
         }
     return USER_PREFS[uid]
+
+# ================= SYNONYMS ENGINE =================
+SYNONYMS = {
+    "historical": ["documented", "archival", "recorded"],
+    "map": ["representation", "cartographic record"],
+    "exists": ["persists", "remains"],
+    "identity": ["presence", "essence"],
+    "memory": ["remembrance", "collective memory"],
+    "records": ["documents", "preserves"],
+    "lives": ["endures", "continues"],
+    "remains": ["stays", "persists"]
+}
+
+def smart_synonym_replace(text, loops=2):
+    lines = text.split("\n")
+    new_lines = []
+    for line in lines:
+        if line.strip().startswith("#"):
+            new_lines.append(line)
+            continue
+        words = re.findall(r"\b\w+\b", line)
+        for _ in range(loops):
+            for w in words:
+                lw = w.lower()
+                if lw in SYNONYMS and random.random() < 0.35:
+                    rep = random.choice(SYNONYMS[lw])
+                    line = re.sub(rf"\b{w}\b", rep, line, count=1)
+        new_lines.append(line)
+    return "\n".join(new_lines)
 
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
@@ -76,19 +110,7 @@ OPENINGS = {
     "maps": [
         "This is a historical map of Palestine before 1948",
         "A documented historical map of Palestine prior to 1948",
-        "This historical map records Palestine as it existed before 1948",
-        "Explore the Palestinian landscape as it was pre-1948",
-        "Palestine before 1948, captured in this historical map",
-        "This map showcases Palestine in its historical borders",
-        "A visual record of Palestinian territory before 1948",
-        "Mapping Palestine's historical geography prior to 1948",
-        "The pre-1948 borders of Palestine displayed here",
-        "This archival map preserves Palestine's past",
-        "Palestine depicted historically before 1948",
-        "A visual documentation of Palestine pre-1948",
-        "Historical cartography of Palestine before 1948",
-        "Palestine’s geography prior to 1948 in detail",
-        "Detailed map illustrating Palestine before 1948"
+        "This historical map records Palestine as it existed before 1948"
         "Maps showing Palestine before 1948",
 "A historical cartography of Palestine pre-1948",
 "Archival map of Palestinian lands prior to 1948",
@@ -146,40 +168,28 @@ OPENINGS = {
     "palestine": [
         "Palestine exists as a continuous identity",
         "Palestine lives beyond time and narration",
-        "Palestine remains present through memory and place",
-        "Palestinian identity persists throughout history",
-        "Palestine endures through culture and memory",
-        "Palestinian heritage remains alive today",
-        "Palestine’s story continues through generations",
-        "Palestine stands as a living history",
-        "Palestinian land holds an eternal identity",
-        "Palestine maintains its presence despite challenges",
-        "Palestinian culture and identity persist",
-        "Palestine’s existence transcends time",
-        "Palestine lives in memory and spirit",
-        "Palestine remains a core identity",
-        "Palestine is eternal through history and people"
+        "Palestine remains present through memory and place"
         "Palestine exists as a continuous identity",
-        "Palestine lives beyond time and narration",
-        "Palestine remains present through memory and place",
-        "Palestine has always been a land of culture and history",
-        "The spirit of Palestine endures across generations",
-        "Palestinian identity is rooted in its lands",
-        "Palestine thrives in memory and stories",
-        "Palestinian presence persists through time",
-        "Palestine remains alive in hearts and minds",
-        "The essence of Palestine transcends borders",
-        "Palestine has been a beacon of heritage",
-        "Palestinian identity flows through history",
-        "Palestine survives through remembrance",
-        "The legacy of Palestine is eternal",
-        "Palestinian culture continues to flourish",
-        "Palestine’s story is told through its people",
-        "Palestinian history remains vivid and alive",
-        "Palestine embodies resilience and identity",
-        "Palestinian lands hold centuries of memory",
-        "Palestine persists despite challenges",
-        "The soul of Palestine is indestructible",
+"Palestine lives beyond time and narration",
+"Palestine remains present through memory and place",
+"Palestine has always been a land of culture and history",
+"The spirit of Palestine endures across generations",
+"Palestinian identity is rooted in its lands",
+"Palestine thrives in memory and stories",
+"Palestinian presence persists through time",
+"Palestine remains alive in hearts and minds",
+"The essence of Palestine transcends borders",
+"Palestine has been a beacon of heritage",
+"Palestinian identity flows through history",
+"Palestine survives through remembrance",
+"The legacy of Palestine is eternal",
+"Palestinian culture continues to flourish",
+"Palestine’s story is told through its people",
+"Palestinian history remains vivid and alive",
+"Palestine embodies resilience and identity",
+"Palestinian lands hold centuries of memory",
+"Palestine persists despite challenges",
+"The soul of Palestine is indestructible",
 "Palestinian identity is carried through generations",
 "Palestine remains a homeland in spirit",
 "Palestinian traditions thrive despite adversity",
@@ -215,19 +225,7 @@ OPENINGS = {
     "gaza": [
         "Gaza represents daily Palestinian presence",
         "Gaza carries Palestinian identity forward",
-        "Gaza reflects lived Palestinian reality",
-        "Life in Gaza embodies Palestinian continuity",
-        "Gaza holds centuries of history and memory",
-        "The streets of Gaza tell Palestinian stories",
-        "Gaza preserves Palestinian culture and life",
-        "Every corner of Gaza reflects history",
-        "Gaza's people maintain enduring heritage",
-        "Daily life in Gaza sustains identity",
-        "Gaza remains a symbol of Palestinian resilience",
-        "Gaza mirrors Palestinian tradition and life",
-        "Gaza is a living witness to history",
-        "Palestinian presence thrives in Gaza",
-        "Gaza’s daily rhythm preserves identity"
+        "Gaza reflects lived Palestinian reality"
         "Gaza represents daily Palestinian presence",
 "Gaza carries Palestinian identity forward",
 "Gaza reflects lived Palestinian reality",
@@ -283,19 +281,7 @@ OPENINGS = {
     "memory": [
         "Palestinian memory moves quietly through generations",
         "Memory preserves Palestinian identity without interruption",
-        "This memory carries Palestine forward",
-        "Heritage keeps the Palestinian story alive",
-        "Memory ensures identity continuity",
-        "Collective remembrance sustains culture",
-        "Memory of Palestine persists through time",
-        "Palestinian history is carried in memory",
-        "Past generations’ memory informs today",
-        "Memory anchors Palestinian identity",
-        "Stories and recollections preserve heritage",
-        "Historical memory maintains culture",
-        "Memory of Palestine shapes the present",
-        "Heritage remembered across generations",
-        "Palestinian memory is ever-living"
+        "This memory carries Palestine forward"
         "Palestinian memory moves quietly through generations",
 "Memory preserves Palestinian identity without interruption",
 "This memory carries Palestine forward",
@@ -352,19 +338,7 @@ OPENINGS = {
     "nakba": [
         "The Nakba reshaped Palestinian daily life",
         "The Nakba marked a historical turning point",
-        "That moment in history altered Palestinian lives",
-        "The Nakba changed the course of history",
-        "Lives were transformed during the Nakba",
-        "Nakba represents a critical historical moment",
-        "Palestinian life was forever changed by the Nakba",
-        "The Nakba reshaped communities and culture",
-        "History remembers the Nakba vividly",
-        "Nakba’s impact echoes through generations",
-        "The Nakba is a pivotal historical event",
-        "Palestinian identity was challenged during Nakba",
-        "Nakba left lasting historical footprints",
-        "Lives and memory were altered by Nakba",
-        "The Nakba defined a new era for Palestine"
+        "That moment in history altered Palestinian lives"
         "The Nakba reshaped Palestinian daily life",
 "The Nakba marked a historical turning point",
 "That moment in history altered Palestinian lives",
@@ -428,12 +402,7 @@ MOODS = {
         "middles": [
             "documented carefully without commentary",
             "recorded through names, places, and memory",
-            "preserved without noise or exaggeration",
-            "carefully noted through historical references",
-            "recorded from oral histories",
-            "documented with attention to every detail",
-            "observed and chronicled with precision",
-            "noted faithfully through evidence"
+            "preserved without noise or exaggeration"
             "documented carefully without commentary",
 "recorded through names, places, and memory",
 "preserved without noise or exaggeration",
@@ -550,12 +519,7 @@ MOODS = {
         "endings": [
             "as part of Palestinian historical continuity",
             "within Palestinian collective memory",
-            "as a documented Palestinian reality",
-            "as part of the enduring Palestinian narrative",
-            "ensuring memory remains intact for generations",
-            "recorded for historical accuracy",
-            "maintaining authentic Palestinian heritage",
-            "preserved for future generations"
+            "as a documented Palestinian reality"
             "as part of Palestinian historical continuity",
 "within Palestinian collective memory",
 "as a documented Palestinian reality",
@@ -670,12 +634,7 @@ MOODS = {
         "middles": [
             "beyond headlines and explanations",
             "without needing validation",
-            "outside imposed narratives",
-            "beyond public perception",
-            "through deep analysis",
-            "without external commentary",
-            "beyond superficial accounts",
-            "through concentrated focus"
+            "outside imposed narratives"
             "beyond headlines and explanations",
 "without needing validation",
 "outside imposed narratives",
@@ -791,12 +750,7 @@ MOODS = {
         "endings": [
             "remaining undeniably Palestinian",
             "rooted deeply in Palestinian identity",
-            "connected permanently to Palestine",
-            "standing firmly as Palestinian",
-            "deeply embedded in identity",
-            "held strongly through culture",
-            "unshaken in heritage",
-            "anchored in Palestinian reality"
+            "connected permanently to Palestine"
             "remaining undeniably Palestinian",
 "rooted deeply in Palestinian identity",
 "connected permanently to Palestine",
@@ -910,12 +864,7 @@ MOODS = {
         "middles": [
             "through quiet remembrance",
             "through lived experience",
-            "through memory carried forward",
-            "in silent reflection",
-            "through personal connection",
-            "through empathetic understanding",
-            "with mindful observation",
-            "reflecting human experience"
+            "through memory carried forward"
             "through quiet remembrance",
 "through lived experience",
 "through memory carried forward",
@@ -1031,12 +980,7 @@ MOODS = {
         "endings": [
             "held gently within Palestinian memory",
             "remembered without permission",
-            "kept alive through identity",
-            "nurtured in cultural consciousness",
-            "preserved in hearts and minds",
-            "honored through collective remembrance",
-            "maintained with care",
-            "safeguarded in human memory"
+            "kept alive through identity"
             "held gently within Palestinian memory",
 "remembered without permission",
 "kept alive through identity",
@@ -1143,20 +1087,6 @@ MOODS = {
     }
 }
 
-# ================= SYNONYMS =================
-SYNONYMS = {
-    "historical": ["documented", "archival", "recorded"],
-    "Palestine": ["Palestinian land", "the land of Palestine", "Palestinian homeland"],
-    "memory": ["heritage", "legacy", "recollection"],
-    "identity": ["being", "essence", "character"],
-    "life": ["existence", "daily life", "lifestyle"]
-}
-
-def apply_synonyms(text):
-    for word, options in SYNONYMS.items():
-        text = text.replace(word, random.choice(options))
-    return text
-
 # ================= HASHTAGS =================
 HASHTAGS = {
     "palestine": "#Palestine #PalestinianIdentity #Hatshepsut",
@@ -1167,71 +1097,40 @@ HASHTAGS = {
 }
 
 # ================= ANTI-FLATNESS DETECTOR =================
-def anti_flatness(opening, middle, ending):
-    lens = [len(opening.split()), len(middle.split()), len(ending.split())]
-    mean = sum(lens) / 3.0
-    variance = sum((l - mean) ** 2 for l in lens) / 3.0
-    if variance < 2.0:
-        return False
-    if opening.split()[0].lower() in middle.lower():
-        return False
-    if ending.split()[0].lower() in middle.lower():
+def anti_flatness(o, m, e):
+    lens = [len(o.split()), len(m.split()), len(e.split())]
+    if max(lens) - min(lens) < 2:
         return False
     return True
 
-# ================= TYPOGRAPHY MODES =================
-TYPOGRAPHY_MODES = {
-    "mono": lambda t: f"<code>{t}</code>",
-    "boxed": lambda t: f"<pre>{t}</pre>",
-    "clean": lambda t: t
-}
-
-def apply_typography(text, mode):
-    return TYPOGRAPHY_MODES.get(mode, TYPOGRAPHY_MODES["mono"])(text)
-
-# ================= CONTROLLED RANDOMNESS =================
-RANDOMNESS_LEVELS = {
-    "low": 0.2,
-    "balanced": 0.5,
-    "high": 0.8
-}
-
-def controlled_choice(items, level):
-    r = RANDOMNESS_LEVELS.get(level, 0.5)
-    if random.random() > r:
-        return items[0]
-    return random.choice(items)
+# ================= TYPOGRAPHY =================
+def apply_typography(text):
+    return f"<code>{text}</code>"
 
 # ================= HOOK ENGINE =================
 def generate_hook(uid, category, mood):
     prefs = get_prefs(uid)
-    for _ in range(80):
-        opening = controlled_choice(OPENINGS[category], prefs["randomness"])
-        middle = controlled_choice(MOODS[mood]["middles"], prefs["randomness"])
-        ending = controlled_choice(MOODS[mood]["endings"], prefs["randomness"])
+    for _ in range(60):
+        o = random.choice(OPENINGS[category])
+        m = random.choice(MOODS[mood]["middles"])
+        e = random.choice(MOODS[mood]["endings"])
         emoji = random.choice(EMOJIS)
 
-        if not anti_flatness(opening, middle, ending):
+        if not anti_flatness(o, m, e):
             continue
 
-        key = f"{category}|{mood}|{opening}|{middle}|{ending}"
+        key = f"{o}|{m}|{e}"
         if seen_before(uid, key):
             continue
 
-        raw = (
-            f"{opening},\n"
-            f"{middle},\n"
-            f"{ending}. {emoji}\n\n"
-            f"{HASHTAGS[category]}"
-        )
+        text = f"{o},\n{m},\n{e}. {emoji}\n\n{HASHTAGS[category]}"
+        text = smart_synonym_replace(text)
 
-        raw = apply_synonyms(raw)
-
-        if safe(raw) and semantic_safe(raw):
+        if safe(text) and semantic_safe(text):
             remember(uid, key)
-            return apply_typography(raw, prefs["typography"])
+            return apply_typography(text)
 
-    return apply_typography("No new safe formulation could be generated.", prefs["typography"])
+    return apply_typography("No new safe formulation could be generated.")
 
 # ================= KEYBOARDS =================
 def categories_kb():
@@ -1246,68 +1145,60 @@ def mood_kb(category):
         kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
     return kb
 
-def again_kb(category, mood):
+def again_kb(category, mood, copied=False):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}"),
-        InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
+        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}")
     )
-    kb.add(
-        InlineKeyboardButton("🅣 Typography", callback_data=f"typography|{category}|{mood}")
-    )
+    if not copied:
+        kb.add(
+            InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
+        )
+    else:
+        kb.add(
+            InlineKeyboardButton("✅ Copied", callback_data="noop")
+        )
     return kb
 
 # ================= HANDLERS =================
 @bot.message_handler(commands=["start"])
 def start(m):
-    bot.send_message(
-        m.chat.id,
-        "🇵🇸 اختار القسم:",
-        reply_markup=categories_kb()
-    )
+    bot.send_message(m.chat.id, "🇵🇸 اختار القسم:", reply_markup=categories_kb())
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle(c):
     data = c.data.split("|")
     uid = c.from_user.id
-    prefs = get_prefs(uid)
+    USER_PRESS.setdefault(uid, 0)
 
     if data[0] == "cat":
-        bot.send_message(
-            c.message.chat.id,
-            "🎭 اختار النبرة:",
-            reply_markup=mood_kb(data[1])
-        )
+        bot.send_message(c.message.chat.id, "🎭 اختار النبرة:", reply_markup=mood_kb(data[1]))
 
     elif data[0] == "mood":
-        _, category, mood = data
-        text = generate_hook(uid, category, mood)
-        bot.send_message(
-            c.message.chat.id,
-            text,
-            reply_markup=again_kb(category, mood)
-        )
+        USER_PRESS[uid] = 0
+        _, cat, mood = data
+        text = generate_hook(uid, cat, mood)
+        bot.send_message(c.message.chat.id, text, reply_markup=again_kb(cat, mood))
 
     elif data[0] == "again":
-        _, category, mood = data
-        text = generate_hook(uid, category, mood)
-        bot.send_message(
-            c.message.chat.id,
-            text,
-            reply_markup=again_kb(category, mood)
-        )
-
-    elif data[0] == "typography":
-        _, category, mood = data
-        modes = list(TYPOGRAPHY_MODES.keys())
-        prefs["typography"] = modes[(modes.index(prefs["typography"]) + 1) % len(modes)]
-        bot.answer_callback_query(c.id, f"Typography: {prefs['typography']} ✔️")
+        USER_PRESS[uid] += 1
+        prefs = get_prefs(uid)
+        prefs["randomness"] = min(0.9, prefs["randomness"] + 0.05)
+        _, cat, mood = data
+        text = generate_hook(uid, cat, mood)
+        bot.send_message(c.message.chat.id, text, reply_markup=again_kb(cat, mood))
 
     elif data[0] == "copy":
-        bot.answer_callback_query(c.id, "Copied ✔️", show_alert=True)
+        bot.edit_message_reply_markup(
+            chat_id=c.message.chat.id,
+            message_id=c.message.message_id,
+            reply_markup=again_kb(data[1], data[2], copied=True)
+        )
+        bot.answer_callback_query(c.id, "Copied ✔️")
+
+    else:
+        bot.answer_callback_query(c.id)
 
 # ================= RUN =================
 print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
-
-
