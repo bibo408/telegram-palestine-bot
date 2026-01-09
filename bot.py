@@ -321,4 +321,3 @@ def handle(c):
 print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
 
-
