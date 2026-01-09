@@ -4,18 +4,15 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
-import re
 
 # ================= BOT INIT =================
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-# ================= BLOCKED WORDS =================
+# ================= SAFETY FILTER =================
 BLOCKED = [
-    "conflict","violence","violent","resistance","occupation",
-    "zion","zionist","jewish","israel","israeli",
-    "attack","kill","bomb","destroy","rocket","missile",
-    "fraud","scam"
+    "violence","violent","attack","kill","bomb","destroy",
+    "weapon","missile","rocket","war","fight","combat"
 ]
 
 def safe(text):
@@ -26,120 +23,148 @@ def safe(text):
 USER_HISTORY = {}
 USER_PRESS = {}
 
-def seen_before(uid, key):
-    return key in USER_HISTORY.get(uid, [])
-
 def remember(uid, key):
     USER_HISTORY.setdefault(uid, []).append(key)
-    USER_HISTORY[uid] = USER_HISTORY[uid][-200:]
+    USER_HISTORY[uid] = USER_HISTORY[uid][-300:]
 
-# ================= CATEGORIES =================
+def seen(uid, key):
+    return key in USER_HISTORY.get(uid, [])
+
+# ================= UI CATEGORIES (AR ONLY) =================
 CATEGORIES = {
+    "maps": "🗺️ الخرائط التاريخية",
     "palestine": "🇵🇸 فلسطين",
-    "gaza": "■ غزة",
-    "maps": "🗺️ خرائط",
-    "nakba": "— النكبة"
+    "gaza": "🏙️ غزة",
+    "nakba": "📜 النكبة"
 }
 
-# ================= ASSERTIVE ENGINE =================
+# ================= ASSERTIVE ENGLISH STATEMENTS =================
+STATEMENTS = {
 
-DECLARATIONS = {
+    "maps": [
+        "This is the original historical map of Palestine before 1948",
+        "This map represents Palestine as officially recorded before 1948",
+        "This is an authentic cartographic record of Palestine",
+        "This map documents Palestine clearly and unmistakably",
+        "This is a verified historical map identifying Palestine"
+    ],
+
     "palestine": [
         "Palestine is a historical fact",
-        "Palestine exists as a defined reality",
-        "Palestine is not a narrative, it is established",
-        "Palestine is fixed in record and place"
+        "Palestine exists as an established reality",
+        "Palestine is documented across history and geography",
+        "Palestine is fixed in official records",
+        "Palestine is not a claim, it is a fact"
     ],
+
     "gaza": [
-        "Gaza is an integral Palestinian reality",
-        "Gaza exists as documented Palestinian presence",
-        "Gaza stands as a confirmed Palestinian fact"
+        "Gaza is an integral part of Palestine",
+        "Gaza exists as a documented Palestinian city",
+        "Gaza represents a confirmed Palestinian presence",
+        "Gaza is historically and geographically Palestinian",
+        "Gaza stands as a recorded Palestinian reality"
     ],
-    "maps": [
-        "Historical maps record Palestine explicitly",
-        "Pre-1948 cartography defines Palestine clearly",
-        "These maps establish Palestine without ambiguity"
-    ],
+
     "nakba": [
         "The Nakba is a documented historical event",
-        "The Nakba altered Palestinian life irreversibly",
-        "The Nakba is recorded fact, not interpretation"
+        "The Nakba represents a recorded turning point in history",
+        "The Nakba is an established historical fact",
+        "The Nakba is preserved in historical documentation",
+        "The Nakba is not interpretation, it is record"
     ]
 }
 
-POWER_CLAUSES = [
-    "This requires no explanation",
-    "This stands without justification",
-    "This is not subject to debate",
-    "This remains unaffected by denial"
-]
-
+# ================= POWER SEALS =================
 SEALS = [
-    "It stands as documented truth",
-    "It remains historically fixed",
-    "It is established and unaltered",
-    "It is neither disputed nor erased"
+    "This is an established historical fact",
+    "This stands as documented truth",
+    "This requires no justification",
+    "This remains unchanged by denial",
+    "This is fixed in historical record"
 ]
 
-# ================= PRESS LEVEL LOGIC =================
-def build_statement(category, level):
-    d = random.choice(DECLARATIONS[category])
-
-    if level == 0:
-        return f"{d}.\n{random.choice(POWER_CLAUSES)}.\n{random.choice(SEALS)}."
-    elif level == 1:
-        return f"{d}.\n{random.choice(SEALS)}."
-    elif level == 2:
-        core = d.split(" is ")[0]
-        return f"{core} exists."
-    else:
-        core = d.split(" ")[0]
-        return core + "."
+# ================= EMOJIS =================
+EMOJIS = {
+    "maps": ["🗺️","📍","🧭","📜","🧾","📐","🪶","📖"],
+    "palestine": ["🌍","🧱","📜","⏳","🌿","✨","🕊️"],
+    "gaza": ["🏙️","🌊","📍","🧱","🌅","⏳","🕊️"],
+    "nakba": ["📜","⏳","🕯️","📖","🪶","🧠","🕊️"]
+}
 
 # ================= HASHTAGS =================
 HASHTAGS = {
-    "palestine": "#Palestine #HistoricalFact",
-    "gaza": "#Gaza #EstablishedReality",
-    "maps": "#HistoricalMaps #RecordedTruth",
-    "nakba": "#Nakba #DocumentedHistory"
+    "maps": (
+        "#Palestine #HistoricalMap #Pre1948 #Documented "
+        "#HistoricalRecord #Verified #Fact"
+    ),
+    "palestine": (
+        "#Palestine #HistoricalFact #RecordedHistory "
+        "#Established #Identity #Reality"
+    ),
+    "gaza": (
+        "#Gaza #Palestine #HistoricalReality "
+        "#Recorded #Geography #Fact"
+    ),
+    "nakba": (
+        "#Nakba #DocumentedHistory #HistoricalFact "
+        "#Recorded #Memory #Truth"
+    )
 }
 
-# ================= TYPOGRAPHY =================
-def apply_typography(text):
-    return f"<code>{text}</code>"
+# ================= TYPOGRAPHY STYLE =================
+def style(text):
+    return (
+        "<b>— OFFICIAL RECORD —</b>\n\n"
+        f"<code>{text}</code>"
+    )
 
 # ================= GENERATOR =================
 def generate(uid, category):
     USER_PRESS.setdefault(uid, 0)
+    level = min(USER_PRESS[uid], 2)
 
-    for _ in range(50):
-        lvl = min(USER_PRESS[uid], 3)
-        body = build_statement(category, lvl)
-        emoji = random.choice(["🇵🇸", "■", "—"])
-        text = f"{body} {emoji}\n\n{HASHTAGS[category]}"
-        key = f"{category}|{lvl}|{body}"
+    for _ in range(60):
+        base = random.choice(STATEMENTS[category])
+        seal = random.choice(SEALS)
+        emoji = random.choice(EMOJIS[category])
 
-        if seen_before(uid, key):
+        if level == 0:
+            body = f"{base}.\n{seal}."
+        elif level == 1:
+            body = f"{base}."
+        else:
+            body = base.split(",")[0] + "."
+
+        text = (
+            f"{body}\n\n"
+            f"🇵🇸 {emoji}\n\n"
+            f"{HASHTAGS[category]}"
+        )
+
+        key = f"{category}|{body}"
+        if seen(uid, key):
             continue
         if not safe(text):
             continue
 
         remember(uid, key)
-        return apply_typography(text)
+        return style(text)
 
-    return apply_typography("Statement already established.")
+    return style("The record is already established.")
 
-# ================= KEYBOARDS =================
+# ================= KEYBOARDS (STYLED) =================
 def categories_kb():
     kb = InlineKeyboardMarkup(row_width=2)
     for k, v in CATEGORIES.items():
-        kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
+        kb.add(
+            InlineKeyboardButton(v, callback_data=f"cat|{k}")
+        )
     return kb
 
-def reinforce_kb(category):
+def again_kb(category):
     kb = InlineKeyboardMarkup(row_width=1)
     kb.add(
-        InlineKeyboardButton("🔁 Reinforce Statement", callback_data=f"again|{category}")
+        InlineKeyboardButton("🔁 تعزيز البيان", callback_data=f"again|{category}")
     )
     return kb
 
@@ -148,7 +173,7 @@ def reinforce_kb(category):
 def start(m):
     bot.send_message(
         m.chat.id,
-        "🔒 اختر الحقيقة:",
+        "🔒 اختر القسم لعرض الحقيقة:",
         reply_markup=categories_kb()
     )
 
@@ -160,18 +185,26 @@ def handle(c):
     if data[0] == "cat":
         USER_PRESS[uid] = 0
         cat = data[1]
-        text = generate(uid, cat)
-        bot.send_message(c.message.chat.id, text, reply_markup=reinforce_kb(cat))
+        txt = generate(uid, cat)
+        bot.send_message(
+            c.message.chat.id,
+            txt,
+            reply_markup=again_kb(cat)
+        )
 
     elif data[0] == "again":
         USER_PRESS[uid] += 1
         cat = data[1]
-        text = generate(uid, cat)
-        bot.send_message(c.message.chat.id, text, reply_markup=reinforce_kb(cat))
+        txt = generate(uid, cat)
+        bot.send_message(
+            c.message.chat.id,
+            txt,
+            reply_markup=again_kb(cat)
+        )
 
     else:
         bot.answer_callback_query(c.id)
 
 # ================= RUN =================
-print("■ ASSERTIVE FACT ENGINE RUNNING")
+print("🇵🇸 ASSERTIVE ENGLISH FACT ENGINE RUNNING")
 bot.infinity_polling(skip_pending=True)
