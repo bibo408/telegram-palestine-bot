@@ -6,6 +6,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
 import re
+import time
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
@@ -41,6 +42,7 @@ def semantic_safe(text):
 
 # ================= USER VARIATION LOCK =================
 USER_HISTORY = {}
+USER_PRESS = {}
 
 def seen_before(uid, key):
     USER_HISTORY.setdefault(uid, [])
@@ -50,6 +52,17 @@ def remember(uid, key):
     USER_HISTORY.setdefault(uid, []).append(key)
     if len(USER_HISTORY[uid]) > 200:
         USER_HISTORY[uid] = USER_HISTORY[uid][-200:]
+
+# ================= USER PREFERENCES =================
+USER_PREFS = {}
+
+def get_prefs(uid):
+    if uid not in USER_PREFS:
+        USER_PREFS[uid] = {
+            "typography": "mono",
+            "randomness": 0.4
+        }
+    return USER_PREFS[uid]
 
 # ================= SYNONYMS ENGINE =================
 SYNONYMS = {
@@ -64,11 +77,17 @@ SYNONYMS = {
 }
 
 def smart_synonym_replace(text, loops=2):
-    for _ in range(loops):
-        for k, v in SYNONYMS.items():
-            if random.random() < 0.3:
-                text = re.sub(rf"\b{k}\b", random.choice(v), text, count=1, flags=re.I)
-    return text
+    lines = text.split("\n")
+    new_lines = []
+    for line in lines:
+        words = re.findall(r"\b\w+\b", line)
+        for _ in range(loops):
+            for w in words:
+                lw = w.lower()
+                if lw in SYNONYMS and random.random() < 0.3:
+                    line = re.sub(rf"\b{w}\b", random.choice(SYNONYMS[lw]), line, count=1)
+        new_lines.append(line)
+    return "\n".join(new_lines)
 
 # ================= EMOJIS =================
 EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
@@ -79,7 +98,7 @@ CATEGORIES = {
     "gaza": "🔥 غزة",
     "maps": "🗺️ خرائط فلسطين",
     "memory": "📜 الذاكرة الفلسطينية",
-    "nakba": "🕊️ النكبة"
+    "nakba": "🕊️ النكبة وأحداثها"
 }
 
 # ================= OPENINGS =================
@@ -88,17 +107,17 @@ OPENINGS = {
         "This is a historical map of Palestine before 1948",
         "A documented historical map of Palestine prior to 1948",
         "This historical map records Palestine as it existed before 1948",
-        "Maps showing Palestine before 1948 as a recorded reality"
+        "Maps showing Palestine before 1948"
     ],
     "palestine": [
-        "Palestine exists as a continuous historical identity",
-        "Palestine remains present through place and memory",
-        "Palestine lives beyond time and narration"
+        "Palestine exists as a continuous identity",
+        "Palestine lives beyond time and narration",
+        "Palestine remains present through memory and place"
     ],
     "gaza": [
-        "Gaza represents lived Palestinian presence",
+        "Gaza represents daily Palestinian presence",
         "Gaza carries Palestinian identity forward",
-        "Gaza reflects daily Palestinian reality"
+        "Gaza reflects lived Palestinian reality"
     ],
     "memory": [
         "Palestinian memory moves quietly through generations",
@@ -112,26 +131,50 @@ OPENINGS = {
     ]
 }
 
-# ================= SINGLE SUPER MOOD =================
+# ================= MOODS =================
 MOODS = {
-    "🧠 تثبيت تاريخي عميق": {
+    "🧠 هادئ توثيقي": {
         "middles": [
-            "documented carefully through names and places",
-            "recorded without exaggeration or narrative noise",
-            "preserved as factual historical evidence"
+            "documented carefully without commentary",
+            "recorded through names, places, and memory",
+            "preserved without noise or exaggeration"
         ],
         "endings": [
             "as part of Palestinian historical continuity",
-            "within the documented Palestinian record",
-            "as a fixed historical reality"
+            "within Palestinian collective memory",
+            "as a documented Palestinian reality"
+        ]
+    },
+    "⚡ مكثف عميق": {
+        "middles": [
+            "beyond headlines and explanations",
+            "without needing validation",
+            "outside imposed narratives"
+        ],
+        "endings": [
+            "remaining undeniably Palestinian",
+            "rooted deeply in Palestinian identity",
+            "connected permanently to Palestine"
+        ]
+    },
+    "✨ تأملي إنساني": {
+        "middles": [
+            "through quiet remembrance",
+            "through lived experience",
+            "through memory carried forward"
+        ],
+        "endings": [
+            "held gently within Palestinian memory",
+            "remembered without permission",
+            "kept alive through identity"
         ]
     }
 }
 
 # ================= HASHTAGS =================
 HASHTAGS = {
-    "palestine": "#Palestine #History #Hatshepsut",
-    "gaza": "#Gaza #Palestine #Hatshepsut",
+    "palestine": "#Palestine #PalestinianIdentity #Hatshepsut",
+    "gaza": "#Gaza #PalestinianMemory #Hatshepsut",
     "maps": "#HistoricalMap #Palestine #Hatshepsut",
     "memory": "#PalestinianMemory #History #Hatshepsut",
     "nakba": "#Nakba #PalestinianMemory #Hatshepsut"
@@ -147,9 +190,9 @@ def apply_typography(text):
     return f"<code>{text}</code>"
 
 # ================= GENERATOR =================
-def generate_hook(uid, category):
-    mood = list(MOODS.keys())[0]
-    for _ in range(50):
+def generate_hook(uid, category, mood):
+    get_prefs(uid)
+    for _ in range(60):
         o = random.choice(OPENINGS[category])
         m = random.choice(MOODS[mood]["middles"])
         e = random.choice(MOODS[mood]["endings"])
@@ -169,7 +212,7 @@ def generate_hook(uid, category):
             remember(uid, key)
             return apply_typography(text)
 
-    return apply_typography("No new safe formulation available.")
+    return apply_typography("No new safe formulation could be generated.")
 
 # ================= KEYBOARDS =================
 def categories_kb():
@@ -178,13 +221,20 @@ def categories_kb():
         kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
-def again_kb(category, copied=False):
+def mood_kb(category):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for m in MOODS:
+        kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
+    return kb
+
+def again_kb(category, mood, copied=False):
     kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}"))
-    if not copied:
-        kb.add(InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}"))
-    else:
-        kb.add(InlineKeyboardButton("✅ Copied", callback_data="noop"))
+    kb.add(InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}"))
+    kb.add(
+        InlineKeyboardButton("✅ Copied", callback_data="noop")
+        if copied else
+        InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
+    )
     return kb
 
 # ================= HANDLERS =================
@@ -194,24 +244,28 @@ def start(m):
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle(c):
-    uid = c.from_user.id
     data = c.data.split("|")
+    uid = c.from_user.id
+    USER_PRESS.setdefault(uid, 0)
 
     if data[0] == "cat":
-        cat = data[1]
-        text = generate_hook(uid, cat)
-        bot.send_message(c.message.chat.id, text, reply_markup=again_kb(cat))
+        bot.send_message(c.message.chat.id, "🎭 اختار النبرة:", reply_markup=mood_kb(data[1]))
+
+    elif data[0] == "mood":
+        USER_PRESS[uid] = 0
+        _, cat, mood = data
+        bot.send_message(c.message.chat.id, generate_hook(uid, cat, mood), reply_markup=again_kb(cat, mood))
 
     elif data[0] == "again":
-        cat = data[1]
-        text = generate_hook(uid, cat)
-        bot.send_message(c.message.chat.id, text, reply_markup=again_kb(cat))
+        USER_PRESS[uid] += 1
+        _, cat, mood = data
+        bot.send_message(c.message.chat.id, generate_hook(uid, cat, mood), reply_markup=again_kb(cat, mood))
 
     elif data[0] == "copy":
         bot.edit_message_reply_markup(
             chat_id=c.message.chat.id,
             message_id=c.message.message_id,
-            reply_markup=again_kb(data[1], copied=True)
+            reply_markup=again_kb(data[1], data[2], copied=True)
         )
         bot.answer_callback_query(c.id, "Copied ✔️")
 
@@ -219,6 +273,6 @@ def handle(c):
         bot.answer_callback_query(c.id)
 
 # ================= RUN =================
-print("🇵🇸 Palestinian Historical Engine running...")
+print("🇵🇸 Advanced Palestinian Hook Engine running...")
 bot.infinity_polling(skip_pending=True)
 ```
