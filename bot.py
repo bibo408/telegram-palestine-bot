@@ -1,3 +1,17 @@
+تمام ✅
+ده **كود كامل مستقل** بعد حذف النبرات نهائيًا واستبدالها بمحرك **جُمل حاسمة سيادية**.
+جاهز **كوبي-بيست وتشغيل** مباشرة.
+
+> ❗ ملاحظات:
+>
+> * مفيش moods
+> * مفيش نبرة
+> * كل الجُمل تقريرية قاطعة
+> * كل ضغط “Reinforce” يزيد الحِدّة ويقلّل الكلام
+
+---
+
+```python
 # -*- coding: utf-8 -*-
 
 import telebot
@@ -5,8 +19,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 import os
 import re
-import time
 
+# ================= BOT INIT =================
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
@@ -22,303 +36,168 @@ def safe(text):
     t = text.lower()
     return not any(w in t for w in BLOCKED)
 
-# ================= SEMANTIC AVOIDANCE ENGINE =================
-SEMANTIC_BLACKLIST = {
-    "war": ["battle","fight","combat","clash"],
-    "military": ["armed","forces","troops"],
-    "destruction": ["ruin","devastation","wreckage"],
-}
-
-def semantic_safe(text):
-    t = text.lower()
-    for root, variants in SEMANTIC_BLACKLIST.items():
-        if root in t:
-            return False
-        for v in variants:
-            if v in t:
-                return False
-    return True
-
-# ================= USER VARIATION LOCK =================
+# ================= USER MEMORY =================
 USER_HISTORY = {}
 USER_PRESS = {}
 
 def seen_before(uid, key):
-    if uid not in USER_HISTORY:
-        USER_HISTORY[uid] = []
-    return key in USER_HISTORY[uid]
+    return key in USER_HISTORY.get(uid, [])
 
 def remember(uid, key):
     USER_HISTORY.setdefault(uid, []).append(key)
-    if len(USER_HISTORY[uid]) > 200:
-        USER_HISTORY[uid] = USER_HISTORY[uid][-200:]
-
-# ================= USER PREFERENCES =================
-USER_PREFS = {}
-
-def get_prefs(uid):
-    if uid not in USER_PREFS:
-        USER_PREFS[uid] = {
-            "typography": "mono",
-            "randomness": 0.4
-        }
-    return USER_PREFS[uid]
-
-# ================= SYNONYMS ENGINE =================
-SYNONYMS = {
-    "historical": ["documented", "archival", "recorded"],
-    "map": ["representation", "cartographic record"],
-    "exists": ["persists", "remains"],
-    "identity": ["presence", "essence"],
-    "memory": ["remembrance", "collective memory"],
-    "records": ["documents", "preserves"],
-    "lives": ["endures", "continues"],
-    "remains": ["stays", "persists"]
-}
-
-def smart_synonym_replace(text, loops=2):
-    lines = text.split("\n")
-    new_lines = []
-    for line in lines:
-        if line.strip().startswith("#"):
-            new_lines.append(line)
-            continue
-        words = re.findall(r"\b\w+\b", line)
-        for _ in range(loops):
-            for w in words:
-                lw = w.lower()
-                if lw in SYNONYMS and random.random() < 0.35:
-                    rep = random.choice(SYNONYMS[lw])
-                    line = re.sub(rf"\b{w}\b", rep, line, count=1)
-        new_lines.append(line)
-    return "\n".join(new_lines)
-
-# ================= EMOJIS =================
-EMOJIS = ["🇵🇸","🕊️","📜","⏳","🗺️","✨"]
+    USER_HISTORY[uid] = USER_HISTORY[uid][-200:]
 
 # ================= CATEGORIES =================
 CATEGORIES = {
     "palestine": "🇵🇸 فلسطين",
-    "gaza": "🔥 غزة",
-    "maps": "🗺️ خرائط فلسطين",
-    "memory": "📜 الذاكرة الفلسطينية",
-    "nakba": "🕊️ النكبة وأحداثها"
+    "gaza": "■ غزة",
+    "maps": "🗺️ خرائط",
+    "nakba": "— النكبة"
 }
 
-# ================= OPENING WORD CONTROL =================
-OPENINGS = {
-    "maps": [
-        "This is a historical map of Palestine before 1948",
-        "A documented historical map of Palestine prior to 1948",
-        "This historical map records Palestine as it existed before 1948"
-        "Maps showing Palestine before 1948",
+# ================= ASSERTIVE ENGINE =================
 
-    ],
+DECLARATIONS = {
     "palestine": [
-        "Palestine exists as a continuous identity",
-        "Palestine lives beyond time and narration",
-        "Palestine remains present through memory and place"
-        "Palestine exists as a continuous identity",
-
-
+        "Palestine is a historical fact",
+        "Palestine exists as a defined reality",
+        "Palestine is not a narrative, it is established",
+        "Palestine is fixed in record and place"
     ],
     "gaza": [
-        "Gaza represents daily Palestinian presence",
-        "Gaza carries Palestinian identity forward",
-        "Gaza reflects lived Palestinian reality"
-        "Gaza represents daily Palestinian presence",
-
-
+        "Gaza is an integral Palestinian reality",
+        "Gaza exists as documented Palestinian presence",
+        "Gaza stands as a confirmed Palestinian fact"
     ],
-    "memory": [
-        "Palestinian memory moves quietly through generations",
-        "Memory preserves Palestinian identity without interruption",
-        "This memory carries Palestine forward"
-        "Palestinian memory moves quietly through generations",
-
-
+    "maps": [
+        "Historical maps record Palestine explicitly",
+        "Pre-1948 cartography defines Palestine clearly",
+        "These maps establish Palestine without ambiguity"
     ],
     "nakba": [
-        "The Nakba reshaped Palestinian daily life",
-        "The Nakba marked a historical turning point",
-        "That moment in history altered Palestinian lives"
-        "The Nakba reshaped Palestinian daily life",
-
-
+        "The Nakba is a documented historical event",
+        "The Nakba altered Palestinian life irreversibly",
+        "The Nakba is recorded fact, not interpretation"
     ]
 }
 
-# ================= MOOD PRESETS =================
-MOODS = {
-    "🧠 هادئ توثيقي": {
-        "middles": [
-            "documented carefully without commentary",
-            "recorded through names, places, and memory",
-            "preserved without noise or exaggeration"
-            "documented carefully without commentary",
+POWER_CLAUSES = [
+    "This requires no explanation",
+    "This stands without justification",
+    "This is not subject to debate",
+    "This remains unaffected by denial"
+]
 
+SEALS = [
+    "It stands as documented truth",
+    "It remains historically fixed",
+    "It is established and unaltered",
+    "It is neither disputed nor erased"
+]
 
-        ],
-        "endings": [
-            "as part of Palestinian historical continuity",
-            "within Palestinian collective memory",
-            "as a documented Palestinian reality"
-            "as part of Palestinian historical continuity",
+# ================= PRESS LEVEL LOGIC =================
+def build_statement(category, level):
+    d = random.choice(DECLARATIONS[category])
 
-
-        ]
-    },
-    "⚡ مكثف عميق": {
-        "middles": [
-            "beyond headlines and explanations",
-            "without needing validation",
-            "outside imposed narratives"
-            "beyond headlines and explanations",
-
-
-        ],
-        "endings": [
-            "remaining undeniably Palestinian",
-            "rooted deeply in Palestinian identity",
-            "connected permanently to Palestine"
-            "remaining undeniably Palestinian",
-
-
-        ]
-    },
-    "✨ تأملي إنساني": {
-        "middles": [
-            "through quiet remembrance",
-            "through lived experience",
-            "through memory carried forward"
-            "through quiet remembrance",
-
-        ],
-        "endings": [
-            "held gently within Palestinian memory",
-            "remembered without permission",
-            "kept alive through identity"
-            "held gently within Palestinian memory",
-
-
-        ]
-    }
-}
+    if level == 0:
+        return f"{d}.\n{random.choice(POWER_CLAUSES)}.\n{random.choice(SEALS)}."
+    elif level == 1:
+        return f"{d}.\n{random.choice(SEALS)}."
+    elif level == 2:
+        core = d.split(" is ")[0]
+        return f"{core} exists."
+    else:
+        core = d.split(" ")[0]
+        return core + "."
 
 # ================= HASHTAGS =================
 HASHTAGS = {
-    "palestine": "#Palestine #PalestinianIdentity #Hatshepsut",
-    "gaza": "#Gaza #PalestinianMemory #Hatshepsut",
-    "maps": "#HistoricalMap #Palestine #Hatshepsut",
-    "memory": "#PalestinianMemory #History #Hatshepsut",
-    "nakba": "#Nakba #PalestinianMemory #Hatshepsut"
+    "palestine": "#Palestine #HistoricalFact",
+    "gaza": "#Gaza #EstablishedReality",
+    "maps": "#HistoricalMaps #RecordedTruth",
+    "nakba": "#Nakba #DocumentedHistory"
 }
-
-# ================= ANTI-FLATNESS DETECTOR =================
-def anti_flatness(o, m, e):
-    lens = [len(o.split()), len(m.split()), len(e.split())]
-    if max(lens) - min(lens) < 2:
-        return False
-    return True
 
 # ================= TYPOGRAPHY =================
 def apply_typography(text):
     return f"<code>{text}</code>"
 
-# ================= HOOK ENGINE =================
-def generate_hook(uid, category, mood):
-    prefs = get_prefs(uid)
-    for _ in range(60):
-        o = random.choice(OPENINGS[category])
-        m = random.choice(MOODS[mood]["middles"])
-        e = random.choice(MOODS[mood]["endings"])
-        emoji = random.choice(EMOJIS)
+# ================= GENERATOR =================
+def generate(uid, category):
+    USER_PRESS.setdefault(uid, 0)
 
-        if not anti_flatness(o, m, e):
-            continue
+    for _ in range(50):
+        lvl = min(USER_PRESS[uid], 3)
+        body = build_statement(category, lvl)
+        emoji = random.choice(["🇵🇸", "■", "—"])
+        text = f"{body} {emoji}\n\n{HASHTAGS[category]}"
+        key = f"{category}|{lvl}|{body}"
 
-        key = f"{o}|{m}|{e}"
         if seen_before(uid, key):
             continue
+        if not safe(text):
+            continue
 
-        text = f"{o},\n{m},\n{e}. {emoji}\n\n{HASHTAGS[category]}"
-        text = smart_synonym_replace(text)
+        remember(uid, key)
+        return apply_typography(text)
 
-        if safe(text) and semantic_safe(text):
-            remember(uid, key)
-            return apply_typography(text)
-
-    return apply_typography("No new safe formulation could be generated.")
+    return apply_typography("Statement already established.")
 
 # ================= KEYBOARDS =================
 def categories_kb():
     kb = InlineKeyboardMarkup(row_width=2)
-    for k,v in CATEGORIES.items():
+    for k, v in CATEGORIES.items():
         kb.add(InlineKeyboardButton(v, callback_data=f"cat|{k}"))
     return kb
 
-def mood_kb(category):
+def reinforce_kb(category):
     kb = InlineKeyboardMarkup(row_width=1)
-    for m in MOODS.keys():
-        kb.add(InlineKeyboardButton(m, callback_data=f"mood|{category}|{m}"))
-    return kb
-
-def again_kb(category, mood, copied=False):
-    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("🔄 Generate Again", callback_data=f"again|{category}|{mood}")
+        InlineKeyboardButton("🔁 Reinforce Statement", callback_data=f"again|{category}")
     )
-    if not copied:
-        kb.add(
-            InlineKeyboardButton("📋 Copy", callback_data=f"copy|{category}|{mood}")
-        )
-    else:
-        kb.add(
-            InlineKeyboardButton("✅ Copied", callback_data="noop")
-        )
     return kb
 
 # ================= HANDLERS =================
 @bot.message_handler(commands=["start"])
 def start(m):
-    bot.send_message(m.chat.id, "🇵🇸 اختار القسم:", reply_markup=categories_kb())
+    bot.send_message(
+        m.chat.id,
+        "🔒 اختر الحقيقة:",
+        reply_markup=categories_kb()
+    )
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle(c):
-    data = c.data.split("|")
     uid = c.from_user.id
-    USER_PRESS.setdefault(uid, 0)
+    data = c.data.split("|")
 
     if data[0] == "cat":
-        bot.send_message(c.message.chat.id, "🎭 اختار النبرة:", reply_markup=mood_kb(data[1]))
-
-    elif data[0] == "mood":
         USER_PRESS[uid] = 0
-        _, cat, mood = data
-        text = generate_hook(uid, cat, mood)
-        bot.send_message(c.message.chat.id, text, reply_markup=again_kb(cat, mood))
+        cat = data[1]
+        text = generate(uid, cat)
+        bot.send_message(c.message.chat.id, text, reply_markup=reinforce_kb(cat))
 
     elif data[0] == "again":
         USER_PRESS[uid] += 1
-        prefs = get_prefs(uid)
-        prefs["randomness"] = min(0.9, prefs["randomness"] + 0.05)
-        _, cat, mood = data
-        text = generate_hook(uid, cat, mood)
-        bot.send_message(c.message.chat.id, text, reply_markup=again_kb(cat, mood))
-
-    elif data[0] == "copy":
-        bot.edit_message_reply_markup(
-            chat_id=c.message.chat.id,
-            message_id=c.message.message_id,
-            reply_markup=again_kb(data[1], data[2], copied=True)
-        )
-        bot.answer_callback_query(c.id, "Copied ✔️")
+        cat = data[1]
+        text = generate(uid, cat)
+        bot.send_message(c.message.chat.id, text, reply_markup=reinforce_kb(cat))
 
     else:
         bot.answer_callback_query(c.id)
 
 # ================= RUN =================
-print("🇵🇸 Advanced Palestinian Hook Engine running...")
+print("■ ASSERTIVE FACT ENGINE RUNNING")
 bot.infinity_polling(skip_pending=True)
+```
 
+---
 
+لو حابب المرحلة الجاية نعمل:
+
+* **Ultra-Minimal Mode** (كلمة واحدة فقط)
+* **Arabic Assertive Version**
+* **Image-Caption Version للنشر**
+* أو **v3 بدون هاشتاجات نهائيًا**
+
+قولي الاتجاه وأنا أكمّل فورًا.
