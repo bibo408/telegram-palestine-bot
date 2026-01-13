@@ -122,6 +122,35 @@ ENDINGS = [
     "held intact across generations"
 ]
 
+# ================= QUESTIONS (NEW) =================
+QUESTIONS = {
+    "palestine": [
+        "If this identity never disappeared, why is it still questioned?",
+        "What does denial look like when history remains visible?",
+        "How much evidence is required before reality is accepted?"
+    ],
+    "gaza": [
+        "If daily life continues, what exactly is claimed to be absent?",
+        "Why is lived reality still treated as a debate?",
+        "At what point does existence stop needing justification?"
+    ],
+    "maps": [
+        "If maps record reality, why are these ones ignored?",
+        "When geography is documented, what remains to dispute?",
+        "How can erased borders still appear so clearly?"
+    ],
+    "memory": [
+        "If memory is continuous, who decides when it ends?",
+        "Why is remembrance feared when it stays consistent?",
+        "What threatens power more than uninterrupted memory?"
+    ],
+    "nakba": [
+        "If displacement reshaped everything, why is its cause denied?",
+        "How does a rupture vanish if its impact never did?",
+        "Who benefits from redefining historical breaks?"
+    ]
+}
+
 EMOJIS = ["🇵🇸","📜","🕊️","⏳","🗺️"]
 
 HASHTAGS = {
@@ -157,20 +186,26 @@ def generate(uid, cat):
     o = random.choice(OPENINGS[cat])
     m = random.choice(MIDDLES)
     e = random.choice(ENDINGS)
+    q = random.choice(QUESTIONS[cat])
     emoji = random.choice(EMOJIS)
 
-    text = f"{o},\n{m},\n{e}. {emoji}\n\n{HASHTAGS[cat]}"
-    text = apply_synonyms(text, r)
+    main_text = f"{o},\n{m},\n{e}. {emoji}"
+    main_text = apply_synonyms(main_text, r)
 
-    sig = hashlib.sha1(text.encode()).hexdigest()
+    full_text = (
+        f"{main_text}\n\n"
+        f"<b>{q}</b>\n\n"
+        f"{HASHTAGS[cat]}"
+    )
 
-    if safe(text) and semantic_safe(text) and not seen(uid, sig):
+    sig = hashlib.sha1(main_text.encode()).hexdigest()
+
+    if safe(full_text) and semantic_safe(full_text) and not seen(uid, sig):
         remember(uid, sig)
-        return typography(text)
+        return typography(full_text)
 
-    text += f" {emoji}"
-    remember(uid, hashlib.sha1(text.encode()).hexdigest())
-    return typography(text)
+    remember(uid, sig)
+    return typography(full_text)
 
 # ================= UI =================
 CATEGORIES = {
@@ -220,5 +255,5 @@ def cb(c):
         bot.answer_callback_query(c.id, "Copied ✔️")
 
 # ================= RUN =================
-print("🇵🇸 Single-Tone Palestinian Hook Engine running...")
+print("🇵🇸 Strong Tone + Question Engine running...")
 bot.infinity_polling(skip_pending=True)
